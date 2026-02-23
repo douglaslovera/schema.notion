@@ -2,6 +2,7 @@
 
 import type { Message } from '@/types/chat'
 import { createGeminiProvider } from './providers/gemini'
+import { createGroqProvider } from './providers/groq'
 import { createOllamaProvider } from './providers/ollama'
 import type {
   AIProvider,
@@ -15,9 +16,9 @@ import type {
  * Supported provider identifiers.
  * Set via AI_PROVIDER env var.
  */
-type ProviderName = 'gemini' | 'ollama'
+type ProviderName = 'gemini' | 'groq' | 'ollama'
 
-const DEFAULT_PROVIDER: ProviderName = 'ollama'
+const DEFAULT_PROVIDER: ProviderName = 'groq'
 
 /**
  * Singleton cache so we don't re-create the provider on every call.
@@ -34,12 +35,15 @@ function getProvider() {
     case 'gemini':
       cachedProvider = createGeminiProvider()
       break
+    case 'groq':
+      cachedProvider = createGroqProvider()
+      break
     case 'ollama':
       cachedProvider = createOllamaProvider()
       break
     default:
       throw new Error(
-        `Unknown AI provider: "${providerName}". Supported: gemini, ollama`,
+        `Unknown AI provider: "${providerName}". Supported: gemini, groq, ollama`,
       )
   }
 
