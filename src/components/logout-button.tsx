@@ -1,12 +1,24 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { logout } from '@/lib/auth'
+import { authClient } from '@/lib/auth-client'
 import { LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export function LogoutButton() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleLogout = async () => {
-    await logout()
+    setIsLoading(true)
+    try {
+      await authClient.signOut()
+      router.push('/sign-in')
+      router.refresh()
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -14,6 +26,7 @@ export function LogoutButton() {
       variant="ghost"
       size="icon"
       onClick={handleLogout}
+      disabled={isLoading}
       aria-label="Cerrar sesión"
       title="Cerrar sesión"
     >

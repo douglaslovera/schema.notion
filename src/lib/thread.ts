@@ -5,7 +5,6 @@ import { type Thread, threads } from '@/db/schema'
 import type { Message } from '@/types/chat'
 import { and, eq } from 'drizzle-orm'
 import { getCurrentUser } from './auth'
-import { ensureUserExistsInDb } from './users'
 
 export interface ThreadData {
   chatId: string
@@ -159,8 +158,6 @@ export async function saveThreadForCurrentUser(
   if (!user) {
     throw new Error('User not authenticated')
   }
-
-  await ensureUserExistsInDb(user)
 
   const existingThread = await getThread(data.chatId)
 

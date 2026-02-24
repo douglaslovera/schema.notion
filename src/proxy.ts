@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { getSessionCookie } from 'better-auth/cookies'
 
-const publicRoutes = ['/', '/sign-in']
+const publicRoutes = ['/', '/sign-in', '/api/auth']
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -10,16 +11,15 @@ export function proxy(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   )
 
-  // Get session cookie
-  const session = request.cookies.get('session')
+  const sessionToken = getSessionCookie(request)
 
   // Redirect to sign-in if accessing protected route without session
-  if (!isPublicRoute && !session) {
+  if (!isPublicRoute && !sessionToken) {
     return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
   // Redirect to schemas if accessing sign-in with valid session
-  if (pathname === '/sign-in' && session) {
+  if (pathname === '/sign-in' && sessionToken) {
     return NextResponse.redirect(new URL('/schemas', request.url))
   }
 
