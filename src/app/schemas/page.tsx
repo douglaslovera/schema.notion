@@ -26,7 +26,16 @@ export default async function SchemasList() {
   const threads = await getThreadsByUserId(user.id)
 
   const getDatabaseTitle = (diagram: string) => {
-    return JSON.parse(diagram)?.database?.name
+    try {
+      const parsed = JSON.parse(diagram)
+      return (
+        parsed?.workspace?.name ||
+        parsed?.workspace?.databases?.[0]?.name ||
+        'Untitled Workspace'
+      )
+    } catch {
+      return 'Untitled Workspace'
+    }
   }
 
   const mappedThreads = threads.map((thread) => {

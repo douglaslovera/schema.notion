@@ -11,8 +11,6 @@ export interface ThreadData {
   chatId: string
   userId: string
   diagram?: string
-  schemasSql?: string
-  schemasMongo?: string
   conversation?: Message[]
 }
 
@@ -53,8 +51,6 @@ export async function createThread(
         chatId: resolvedChatId,
         userId,
         diagram: data.diagram || '',
-        schemasSql: data.schemasSql || '',
-        schemasMongo: data.schemasMongo || '',
         conversation: data.conversation || [],
       })
       .returning()
@@ -84,9 +80,6 @@ export async function updateThread(
   const updateData: Partial<Thread> = {}
 
   if (data.diagram !== undefined) updateData.diagram = data.diagram
-  if (data.schemasSql !== undefined) updateData.schemasSql = data.schemasSql
-  if (data.schemasMongo !== undefined)
-    updateData.schemasMongo = data.schemasMongo
   if (data.conversation !== undefined)
     updateData.conversation = data.conversation
 
@@ -148,8 +141,6 @@ export async function duplicateThread(
   const newThread = await createThread(userId, {
     chatId: newChatId,
     diagram: thread.diagram,
-    schemasSql: thread.schemasSql,
-    schemasMongo: thread.schemasMongo,
     conversation: thread.conversation as Message[],
   })
 

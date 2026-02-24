@@ -1,51 +1,130 @@
-"use client";
+'use client'
 
-export type Column = {
-  name: string;
-  type: string;
-  not_null?: boolean; // Changed to optional
-  unique?: boolean;   // Changed to optional
-  primary_key?: boolean; // Changed to optional
-  foreign_key?: string | null; // Changed to optional
-  default?: string | number | boolean; // Added default property
-};
+import {
+  notionWorkspaceSchema,
+  type ParsedNotionGraph,
+  type ParsedNotionProperty,
+} from '@/types/notion-schema'
 
-export type Table = {
-  name: string;
-  columns: Column[];
-  primary_key_composite?: string[]; // Added for composite primary keys
-};
+const PROPERTY_TYPE_ALIASES: Record<string, string> = {
+  text: 'rich_text',
+}
 
-export type DatabaseSchema = {
-  database: {
-    name: string;
-    tables: Table[];
-  };
-};
+function normalizeNotionSchemaInput(input: unknown): unknown {
+  if (!input || typeof input !== 'object') return input
 
-export function parseJsonToObject(jsonString: string): Table[] {
-  if (!jsonString) return [];
+  const root = input as {
+    workspace?: {
+      databases?: Array<{
+        properties?: Array<{ type?: unknown }>
+      }>
+    }
+  }
+
+  if (!root.workspace?.databases) return input
+
+  return {
+    ...root,
+    workspace: {
+      ...root.workspace,
+      databases: root.workspace.databases.map((database) => ({
+        ...database,
+        properties: database.properties?.map((property) => {
+          if (
+            property?.type &&
+            typeof property.type === 'string' &&
+            PROPERTY_TYPE_ALIASES[property.type]
+          ) {
+            return {
+              ...property,
+              type: PROPERTY_TYPE_ALIASES[property.type],
+            }
+          }
+
+          return property
+        }),
+      })),
+    },
+  }
+}
+
+export function parseNotionSchemaGraph(jsonString: string): ParsedNotionGraph {
+  if (!jsonString) {
+    return { workspaceName: 'Workspace', databases: [], relations: [] }
+  }
 
   try {
-    const schema: DatabaseSchema = JSON.parse(jsonString);
+    const parsedJson = JSON.parse(jsonString)
+    const normalizedInput = normalizeNotionSchemaInput(parsedJson)
+    const parsed = notionWorkspaceSchema.safeParse(normalizedInput)
 
-    if (!schema || !schema.database || !schema.database.tables) {
-      console.error("Estructura JSON inválida.");
-      return [];
+    if (!parsed.success) {
+      console.error('Invalid Notion schema JSON:', parsed.error.issues)
+      return { workspaceName: 'Workspace', databases: [], relations: [] }
     }
 
-    return schema.database.tables.map(table => ({
-      ...table,
-      columns: table.columns.map(column => ({
-        ...column,
-        not_null: column.not_null === undefined ? false : column.not_null, // default to false if undefined
-        unique: column.unique === undefined ? false : column.unique,       // default to false if undefined
-        primary_key: column.primary_key === undefined ? false : column.primary_key, // default to false if undefined
-        foreign_key: column.foreign_key === undefined ? null : column.foreign_key, // default to null if undefined
-      })),
-    }));
+    const schema = parsed.data
+    const databaseIds = new Set(schema.workspace.databases.map((db) => db.id))
+
+    const databases = schema.workspace.databases.map((db) => {
+      const properties: ParsedNotionProperty[] = db.properties.map((property) => {
+        const isRelation = property.type === 'relation'
+        const targetExists =
+          isRelation && property.relation
+            ? databaseIds.has(property.relation.targetDatabaseId)
+            : false
+
+        return {
+          ...property,
+          isRelation,
+          relationResolved: Boolean(targetExists),
+          relationDirection: property.relation?.direction,
+          targetDatabaseId: property.relation?.targetDatabaseId,
+          targetDatabaseName: property.relation?.targetDatabaseName,
+        }
+      })
+
+      return {
+        id: db.id,
+        name: db.name,
+        description: db.description,
+        properties,
+      }
+    })
+
+    const relations = databases.flatMap((db) =>
+      db.properties.flatMap((property) => {
+        if (!property.isRelation || !property.relation || !property.relationResolved) {
+          if (property.isRelation && !property.relationResolved) {
+            console.warn(
+              `Relation property "${property.name}" in "${db.name}" points to unknown database "${property.targetDatabaseId}"`,
+            )
+          }
+          return []
+        }
+
+        return [
+          {
+            id: `rel-${db.id}-${property.name}-${property.relation.targetDatabaseId}`,
+            sourceDatabaseId: db.id,
+            sourceDatabaseName: db.name,
+            sourcePropertyName: property.name,
+            targetDatabaseId: property.relation.targetDatabaseId,
+            targetDatabaseName: property.relation.targetDatabaseName,
+            direction: property.relation.direction,
+            pairedPropertyName: property.relation.pairedPropertyName,
+          },
+        ]
+      }),
+    )
+
+    return {
+      workspaceName: schema.workspace.name,
+      databases,
+      relations,
+    }
   } catch (error) {
-    console.error("Error al procesar el JSON:", error);
-    return [];
+    console.error('Error parsing Notion schema JSON:', error)
+    return { workspaceName: 'Workspace', databases: [], relations: [] }
   }
 }

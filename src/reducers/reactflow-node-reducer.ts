@@ -1,15 +1,15 @@
 import type { Node, NodeChange } from '@xyflow/react'
 import { applyNodeChanges } from '@xyflow/react'
-import type { Column, Table } from '@/lib/parse-utils'
+import type { NotionDatabase, NotionProperty } from '@/types/notion-schema'
 
 export type TableNode = Node<{
   label: string
-  columns: Column[]
+  properties: NotionProperty[]
 }>
 
 export type NodeAction =
-  | { type: 'INIT_NODES'; payload: Table[] }
-  | { type: 'ADD_NODE'; payload: Table }
+  | { type: 'INIT_NODES'; payload: NotionDatabase[] }
+  | { type: 'ADD_NODE'; payload: NotionDatabase }
   | { type: 'REMOVE_NODE'; payload: string }
   | { type: 'UPDATE_NODES'; payload: { changes: NodeChange[] } }
 
@@ -23,20 +23,20 @@ export function nodesReducer(
 ): TableNode[] {
   switch (action.type) {
     case 'INIT_NODES': {
-      return action.payload.map((table, index) => {
+      return action.payload.map((database, index) => {
         const rowIndex = Math.floor(index / nodesPerRow)
         const colIndex = index % nodesPerRow
 
         return {
-          id: table.name,
+          id: database.id,
           type: 'test',
           position: {
             x: colIndex * horizontalSpacing,
             y: rowIndex * verticalSpacing,
           },
           data: {
-            label: table.name,
-            columns: table.columns,
+            label: database.name,
+            properties: database.properties,
           },
         }
       })
@@ -50,7 +50,7 @@ export function nodesReducer(
       return [
         ...state,
         {
-          id: action.payload.name,
+          id: action.payload.id,
           type: 'test',
           position: {
             x: colIndex * horizontalSpacing,
@@ -58,7 +58,7 @@ export function nodesReducer(
           },
           data: {
             label: action.payload.name,
-            columns: action.payload.columns,
+            properties: action.payload.properties,
           },
         },
       ]

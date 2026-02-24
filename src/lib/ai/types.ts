@@ -33,14 +33,6 @@ export interface SendMessageResult {
 }
 
 /**
- * Result of comparing two JSON schemas.
- */
-export interface CompareResult {
-  summary: string
-  newSchema?: object
-}
-
-/**
  * The contract every AI provider must implement.
  *
  * Each method maps 1:1 to a capability the app needs.
@@ -73,18 +65,4 @@ export interface AIProvider {
    */
   normalizeChat(messages: Message[]): Promise<ChatMessage[]>
 
-  /**
-   * Compare two schema versions and produce a human-readable summary
-   * of what changed.
-   */
-  compareJsonSchemas(oldJson: string, newJson: string): Promise<CompareResult>
-
-  /**
-   * Generate an executable database script (SQL DDL or MongoDB Shell)
-   * from a JSON diagram.
-   */
-  generateDatabaseScriptFromDiagram(
-    diagram: string,
-    databaseType: 'sql' | 'mongo',
-  ): Promise<string>
 }

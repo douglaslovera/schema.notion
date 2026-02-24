@@ -2,17 +2,13 @@ import { createGroq } from '@ai-sdk/groq'
 import { generateObject, generateText } from 'ai'
 import { z } from 'zod'
 import {
-  descriptionToJsonDatabasePrompt,
-  fromJsonToMongoPrompt,
-  fromJsonToSqlPrompt,
-  summarizeChangesPrompt,
+  generateNotionSchemaPrompt,
   validateUserIntentPrompt,
 } from '@/lib/prompts'
 import type { Message } from '@/types/chat'
 import type {
   AIProvider,
   ChatMessage,
-  CompareResult,
   SendMessageResult,
   ValidationResult,
 } from '../types'
@@ -22,10 +18,6 @@ const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
 const validationSchema = z.object({
   isValid: z.boolean(),
   message: z.string(),
-})
-
-const scriptSchema = z.object({
-  schema: z.string(),
 })
 
 function toGroqRole(role: 'user' | 'model'): 'user' | 'assistant' {
@@ -57,7 +49,6 @@ export function createGroqProvider(): AIProvider {
   })
 
   const mainModel = process.env.GROQ_MAIN_MODEL || DEFAULT_MODEL
-  const schemaModel = process.env.GROQ_SCHEMA_MODEL || mainModel
   const miscModel = process.env.GROQ_MISC_MODEL || mainModel
 
   return {
@@ -98,7 +89,7 @@ export function createGroqProvider(): AIProvider {
 
       const { text } = await generateText({
         model: groqProvider(mainModel),
-        system: descriptionToJsonDatabasePrompt,
+        system: generateNotionSchemaPrompt,
         messages,
       })
 
@@ -115,62 +106,8 @@ export function createGroqProvider(): AIProvider {
     async normalizeChat(messages: Message[]): Promise<ChatMessage[]> {
       return messages.map((msg) => ({
         role: msg.role,
-        parts: [{ text: msg.diagram }],
+        parts: [{ text: msg.diagram || msg.message }],
       }))
-    },
-
-    async compareJsonSchemas(
-      oldJson: string,
-      newJson: string,
-    ): Promise<CompareResult> {
-      const userContent = `Esquema anterior:\n${oldJson}\n\nEsquema nuevo:\n${JSON.stringify(newJson)}`
-
-      const { text } = await generateText({
-        model: groqProvider(miscModel),
-        system: summarizeChangesPrompt,
-        prompt: userContent,
-      })
-
-      return {
-        summary: text.trim() || 'No se recibió resumen del modelo.',
-        newSchema: {},
-      }
-    },
-
-    async generateDatabaseScriptFromDiagram(
-      diagram: string,
-      databaseType: 'sql' | 'mongo',
-    ): Promise<string> {
-      let systemContext: string
-      switch (databaseType) {
-        case 'sql':
-          systemContext = fromJsonToSqlPrompt
-          break
-        case 'mongo':
-          systemContext = fromJsonToMongoPrompt
-          break
-        default:
-          return 'Invalid database type specified.'
-      }
-
-      try {
-        const { object } = await generateObject({
-          model: groqProvider(schemaModel),
-          system: systemContext,
-          prompt: `${diagram}\n\nResponde en JSON válido con la forma exacta {"schema":"..."} y coloca el script completo dentro de "schema".`,
-          schema: scriptSchema,
-          providerOptions: {
-            groq: {
-              structuredOutputs: false,
-            },
-          },
-        })
-
-        return object.schema
-      } catch (error) {
-        console.error('Error generating database script with Groq:', error)
-        return 'Error generating database script'
-      }
     },
   }
 }

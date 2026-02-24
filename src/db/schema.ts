@@ -16,8 +16,6 @@ export const threads = pgTable('threads', {
     .references(() => users.id)
     .notNull(),
   diagram: text('diagram').default('').notNull(),
-  schemasSql: text('schemas_sql').default('').notNull(),
-  schemasMongo: text('schemas_mongo').default('').notNull(),
   conversation: jsonb('conversation').$type<Message[]>().default([]).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

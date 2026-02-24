@@ -1,15 +1,11 @@
 import {
-  descriptionToJsonDatabasePrompt,
-  fromJsonToMongoPrompt,
-  fromJsonToSqlPrompt,
-  summarizeChangesPrompt,
+  generateNotionSchemaPrompt,
   validateUserIntentPrompt,
 } from '@/lib/prompts'
 import type { Message } from '@/types/chat'
 import type {
   AIProvider,
   ChatMessage,
-  CompareResult,
   SendMessageResult,
   ValidationResult,
 } from '../types'
@@ -34,10 +30,6 @@ interface OllamaChatResponse {
  */
 function toOllamaRole(role: 'user' | 'model'): 'user' | 'assistant' {
   return role === 'model' ? 'assistant' : 'user'
-}
-
-function fromOllamaRole(role: string): 'user' | 'model' {
-  return role === 'user' ? 'user' : 'model'
 }
 
 export function createOllamaProvider(): AIProvider {
@@ -121,7 +113,7 @@ export function createOllamaProvider(): AIProvider {
       ollamaHistory.push({ role: 'user', content: userMessage })
 
       const responseText = await chat(
-        descriptionToJsonDatabasePrompt,
+        generateNotionSchemaPrompt,
         ollamaHistory,
         true,
       )
@@ -139,64 +131,8 @@ export function createOllamaProvider(): AIProvider {
     async normalizeChat(messages: Message[]): Promise<ChatMessage[]> {
       return messages.map((msg) => ({
         role: msg.role,
-        parts: [{ text: msg.diagram }],
+        parts: [{ text: msg.diagram || msg.message }],
       }))
-    },
-
-    async compareJsonSchemas(
-      oldJson: string,
-      newJson: string,
-    ): Promise<CompareResult> {
-      const userContent = `Esquema anterior:\n${oldJson}\n\nEsquema nuevo:\n${JSON.stringify(newJson)}`
-
-      const summary = await chat(
-        summarizeChangesPrompt,
-        [{ role: 'user', content: userContent }],
-        false,
-      )
-
-      return {
-        summary: summary.trim() || 'No se recibió resumen del modelo.',
-        newSchema: {},
-      }
-    },
-
-    async generateDatabaseScriptFromDiagram(
-      diagram: string,
-      databaseType: 'sql' | 'mongo',
-    ): Promise<string> {
-      let systemContext: string
-      switch (databaseType) {
-        case 'sql':
-          systemContext = fromJsonToSqlPrompt
-          break
-        case 'mongo':
-          systemContext = fromJsonToMongoPrompt
-          break
-        default:
-          return 'Invalid database type specified.'
-      }
-
-      try {
-        const text = await chat(
-          systemContext,
-          [{ role: 'user', content: diagram }],
-          true,
-        )
-
-        // Try to parse as JSON with { schema: string } first
-        try {
-          const parsed = JSON.parse(text)
-          if (parsed.schema) return parsed.schema
-        } catch {
-          // If the model returned raw script instead of JSON, use it directly
-        }
-
-        return text
-      } catch (error) {
-        console.error('Error generating database script:', error)
-        return 'Error generating database script'
-      }
     },
   }
 }

@@ -47,11 +47,11 @@ export default function DiagramPanel({
               Mostrar Chat
             </Button>
           )}
-          <h2 className="text-lg font-medium">Diagrama</h2>
+          <h2 className="text-lg font-medium">Notion Databases</h2>
         </div>
         <div className="flex items-center gap-4">
           <Link href={PATHS.SCHEMAS} className="text-sm text-muted-foreground">
-            <p className="text-foreground">Ver Esquemas</p>
+            <p className="text-foreground">Ver Chats</p>
           </Link>
 
           <LogoutButton />

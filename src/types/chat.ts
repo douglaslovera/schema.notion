@@ -20,17 +20,10 @@ export interface Message {
   message: string
 }
 
-export interface Schemas {
-  sql: string
-  prisma: string
-  mongoose: string
-}
-
 export interface Conversation {
   id: string
   title: string
   description: string
-  schemas: Schemas
   diagram: Record<string, unknown>
   messages: Message[]
 }

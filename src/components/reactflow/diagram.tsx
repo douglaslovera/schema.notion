@@ -1,36 +1,44 @@
-"use client";
+'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import React from "react";
+import { useEffect, useRef, useState } from 'react'
 import {
-  ReactFlow,
   Background,
   Controls,
-  useNodesState,
-  useEdgesState,
-  useReactFlow,
-  type Node,
+  MarkerType,
+  ReactFlow,
   type Edge,
+  type Node,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
 } from '@xyflow/react'
-import "@xyflow/react/dist/style.css";
-import CustomNode from "./custom-node";
+import '@xyflow/react/dist/style.css'
+import Dagre from '@dagrejs/dagre'
 import CustomEdge from './custom-edge'
-import { parseJsonToObject } from "@/lib/parse-utils";
-import { useChatStore } from "@/stores/chat";
-import Dagre from "@dagrejs/dagre";
+import CustomNode from './custom-node'
+import { getNotionDatabaseColor } from './notion-colors'
+import { parseNotionSchemaGraph } from '@/lib/parse-utils'
+import type { ParsedNotionProperty } from '@/types/notion-schema'
+import { useChatStore } from '@/stores/chat'
 
 interface NodeData {
   label: string
-  columns: Array<{ name: string; type: string }>
+  description?: string
+  color: ReturnType<typeof getNotionDatabaseColor>
+  properties: Array<
+    ParsedNotionProperty & {
+      targetDatabaseColor?: string
+    }
+  >
   [key: string]: unknown
 }
 
-type AppNode = Node<NodeData, string>;
-type AppEdge = Edge;
+type AppNode = Node<NodeData, string>
+type AppEdge = Edge
 
 const nodeTypes = {
   test: CustomNode,
-};
+}
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -58,7 +66,7 @@ const getLayoutedElements = (
   for (const node of nodesToLayout) {
     const nodeWidth = node.measured?.width || 260
     const baseHeight = 100
-    const estimatedHeight = baseHeight + node.data.columns.length * 24
+    const estimatedHeight = baseHeight + node.data.properties.length * 34
     const nodeHeight = node.measured?.height || estimatedHeight
 
     dagreGraph.setNode(node.id, {
@@ -89,16 +97,18 @@ const getLayoutedElements = (
 }
 
 export function Diagram() {
-  const [isMounted, setIsMounted] = useState(false);
-  const rawChatDiagram = useChatStore(isMounted ? (state) => state.chatDiagram : () => null);
-  const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<AppEdge>([]);
+  const [isMounted, setIsMounted] = useState(false)
+  const rawChatDiagram = useChatStore(
+    isMounted ? (state) => state.chatDiagram : () => null,
+  )
+  const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<AppEdge>([])
   const { setViewport } = useReactFlow()
-  const initialLayoutPerformedRef = useRef(false);
+  const initialLayoutPerformedRef = useRef(false)
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!isMounted || rawChatDiagram === null) {
@@ -108,38 +118,68 @@ export function Diagram() {
       return
     }
 
-    const tablesFromParser: import('@/lib/parse-utils').Table[] =
-      parseJsonToObject(rawChatDiagram)
+    const graph = parseNotionSchemaGraph(rawChatDiagram)
+    const databaseColorMap = new Map(
+      graph.databases.map((database) => [database.id, getNotionDatabaseColor(database.id)]),
+    )
 
-    const newInitialNodes: AppNode[] = tablesFromParser.map((table, i) => ({
-      id: table.name || `node-${i}`,
-      data: {
-        label: table.name,
-        columns: table.columns,
-      },
-      type: 'test',
-      position: { x: 0, y: 0 },
-    }))
+    const newInitialNodes: AppNode[] = graph.databases.map((database, i) => {
+      const dbColor = databaseColorMap.get(database.id) || getNotionDatabaseColor(database.id)
 
-    const newInitialEdges: AppEdge[] = []
-    for (const table of tablesFromParser) {
-      for (const column of table.columns) {
-        if (column.foreign_key) {
-          const fkParts = column.foreign_key.split(/[()]/)
-          const targetTable = fkParts[0]
-          const targetColumn = fkParts[1]
-          const edgeLabel = `${column.name} → ${targetColumn}`
-
-          newInitialEdges.push({
-            id: `fk-${table.name}-${column.name}-${targetTable}-${targetColumn}`,
-            source: table.name,
-            target: targetTable,
-            label: edgeLabel,
-            type: 'custom',
-          })
-        }
+      return {
+        id: database.id || `node-${i}`,
+        data: {
+          label: database.name,
+          description: database.description,
+          color: dbColor,
+          properties: database.properties.map((property) => ({
+            ...property,
+            targetDatabaseColor: property.targetDatabaseId
+              ? databaseColorMap.get(property.targetDatabaseId)?.border
+              : undefined,
+          })),
+        },
+        type: 'test',
+        position: { x: 0, y: 0 },
       }
-    }
+    })
+
+    const newInitialEdges: AppEdge[] = graph.relations.map((relation) => {
+      const targetColor =
+        databaseColorMap.get(relation.targetDatabaseId)?.border || '#94a3b8'
+      const isBidirectional = relation.direction === 'two_way'
+
+      const label = isBidirectional
+        ? `${relation.sourcePropertyName} ↔ ${relation.targetDatabaseName}${relation.pairedPropertyName ? ` (${relation.pairedPropertyName})` : ''}`
+        : `${relation.sourcePropertyName} → ${relation.targetDatabaseName}`
+
+      return {
+        id: relation.id,
+        source: relation.sourceDatabaseId,
+        target: relation.targetDatabaseId,
+        label,
+        type: 'custom',
+        style: {
+          stroke: targetColor,
+          strokeWidth: 2,
+          ...(isBidirectional ? {} : { strokeDasharray: '6 4' }),
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: targetColor,
+          width: 18,
+          height: 18,
+        },
+        markerStart: isBidirectional
+          ? {
+              type: MarkerType.ArrowClosed,
+              color: targetColor,
+              width: 18,
+              height: 18,
+            }
+          : undefined,
+      }
+    })
 
     setNodes(newInitialNodes)
     setEdges(newInitialEdges)
@@ -165,12 +205,12 @@ export function Diagram() {
       initialLayoutPerformedRef.current = true
 
       requestAnimationFrame(() => {
-        // 1. Calcular bounding box de los nodos
         const positions = layouted.nodes.map((node) => ({
           x: node.position.x,
           y: node.position.y,
-          width: node.measured?.width || 260,
-          height: node.measured?.height || 100 + node.data.columns.length * 24,
+          width: node.measured?.width || 288,
+          height:
+            node.measured?.height || 100 + node.data.properties.length * 34,
         }))
 
         const minX = Math.min(...positions.map((p) => p.x))
@@ -181,12 +221,10 @@ export function Diagram() {
         const boxWidth = maxX - minX
         const boxHeight = maxY - minY
 
-        // 2. Calcular el centro del bounding box
         const centerX = minX + boxWidth / 2
         const centerY = minY + boxHeight / 2
 
-        // 3. Centrar el viewport usando ese centro y aplicar zoom personalizado
-        const zoom = 1 // Ajusta si deseas más alejado o cercano
+        const zoom = 0.95
         setViewport({
           x: window.innerWidth / 2 - centerX * zoom,
           y: window.innerHeight / 2 - centerY * zoom,
@@ -196,9 +234,8 @@ export function Diagram() {
     }
   }, [nodes, edges, isMounted, setNodes, setViewport])
 
-
   if (!isMounted) {
-    return null;
+    return null
   }
 
   return (
@@ -212,6 +249,7 @@ export function Diagram() {
       style={{ width: '100%', height: '100%' }}
       minZoom={0.1}
       maxZoom={1.5}
+      fitView={false}
     >
       <Background />
       <div className="text-black">

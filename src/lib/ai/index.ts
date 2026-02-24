@@ -7,7 +7,6 @@ import { createOllamaProvider } from './providers/ollama'
 import type {
   AIProvider,
   ChatMessage,
-  CompareResult,
   SendMessageResult,
   ValidationResult,
 } from './types'
@@ -72,18 +71,4 @@ export async function normalizeChat(
   messages: Message[],
 ): Promise<ChatMessage[]> {
   return getProvider().normalizeChat(messages)
-}
-
-export async function compareJsonSchemas(
-  oldJson: string,
-  newJson: string,
-): Promise<CompareResult> {
-  return getProvider().compareJsonSchemas(oldJson, newJson)
-}
-
-export async function generateDatabaseScriptFromDiagram(
-  diagram: string,
-  databaseType: 'sql' | 'mongo',
-): Promise<string> {
-  return getProvider().generateDatabaseScriptFromDiagram(diagram, databaseType)
 }

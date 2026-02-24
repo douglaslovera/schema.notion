@@ -2,8 +2,6 @@
 
 import type { Thread } from '@/db/schema'
 import {
-  compareJsonSchemas,
-  generateDatabaseScriptFromDiagram,
   normalizeChat,
   sendUserMessage,
   validateUserIntent,
@@ -23,7 +21,6 @@ interface ChatStore {
   chatHistory: Message[] | null
   chatId: string | null
   chatDiagram: string | null
-  chatSchemas: { sql: string; mongo: string }
   isLoading: boolean
 
   addMessageToChat: (role: Roles, text: string, diagram?: string) => void
@@ -38,7 +35,6 @@ export const useChatStore = create<ChatStore>()(
       chatHistory: null,
       chatId: null,
       chatDiagram: null,
-      chatSchemas: { sql: '', mongo: '' },
       isLoading: false,
 
       addMessageToChat: (role: Roles, text: string, diagram?: string) => {
@@ -81,20 +77,17 @@ export const useChatStore = create<ChatStore>()(
           )
 
           let summaryForChatMessage =
-            'El diagrama se ha procesado y no presenta cambios respecto a la versión anterior.'
-          if (
+            'No se detectaron cambios estructurales en la propuesta de Notion.'
+          if (!currentDiagramInStore && aiDiagramResponse) {
+            summaryForChatMessage =
+              'He generado la primera propuesta de bases de datos de Notion según tu solicitud.'
+          } else if (
             currentDiagramInStore &&
             aiDiagramResponse &&
             currentDiagramInStore !== aiDiagramResponse
           ) {
-            const comparisonResult = await compareJsonSchemas(
-              currentDiagramInStore,
-              aiDiagramResponse,
-            )
-            summaryForChatMessage = comparisonResult.summary
-          } else if (aiDiagramResponse && !currentDiagramInStore) {
             summaryForChatMessage =
-              'He generado el nuevo diagrama de acuerdo a tu solicitud.'
+              'Actualicé la estructura de bases de datos de Notion con los cambios que pediste.'
           }
 
           addMessageToChat(
@@ -103,21 +96,6 @@ export const useChatStore = create<ChatStore>()(
             aiDiagramResponse,
           )
 
-          const [sqlSchema, mongodbSchema] = await Promise.all([
-            generateDatabaseScriptFromDiagram(aiDiagramResponse, 'sql'),
-            generateDatabaseScriptFromDiagram(aiDiagramResponse, 'mongo'),
-          ])
-
-          const nextSql = sqlSchema.replaceAll(';;', ';\n') || ''
-          const nextMongo = mongodbSchema || ''
-
-          set({
-            chatSchemas: {
-              sql: nextSql,
-              mongo: nextMongo,
-            },
-          })
-
           set({ chatDiagram: aiDiagramResponse })
 
           try {
@@ -125,8 +103,6 @@ export const useChatStore = create<ChatStore>()(
               chatId,
               diagram: aiDiagramResponse,
               conversation: get().chatHistory || [],
-              schemasSql: nextSql,
-              schemasMongo: nextMongo,
             })
           } catch (error) {
             console.error('Error saving thread:', error)
@@ -154,10 +130,6 @@ export const useChatStore = create<ChatStore>()(
               chatId: thread.chatId,
               chatHistory: thread.conversation as Message[],
               chatDiagram: thread.diagram,
-              chatSchemas: {
-                sql: thread.schemasSql || '',
-                mongo: thread.schemasMongo || '',
-              },
               isLoading: false,
             })
           } else {
@@ -165,7 +137,6 @@ export const useChatStore = create<ChatStore>()(
               chatId,
               chatHistory: [],
               chatDiagram: null,
-              chatSchemas: { mongo: '', sql: '' },
               isLoading: false,
             })
             // const randomIndex = Math.floor(Math.random() * defaultMessages.length)
@@ -177,7 +148,6 @@ export const useChatStore = create<ChatStore>()(
             chatId,
             chatHistory: [],
             chatDiagram: null,
-            chatSchemas: { mongo: '', sql: '' },
             isLoading: false,
           })
         }
