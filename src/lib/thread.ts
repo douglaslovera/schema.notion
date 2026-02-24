@@ -3,8 +3,9 @@
 import { db } from '@/db'
 import { type Thread, threads } from '@/db/schema'
 import type { Message } from '@/types/chat'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getCurrentUser } from './auth'
+import { ensureUserExistsInDb } from './users'
 
 export interface ThreadData {
   chatId: string
@@ -15,23 +16,54 @@ export interface ThreadData {
   conversation?: Message[]
 }
 
+type ThreadDbError = {
+  code?: string
+  constraint_name?: string
+  detail?: string
+  table_name?: string
+}
+
+function logThreadDbError(
+  operation: 'createThread' | 'updateThread',
+  context: { chatId: string; userId?: string },
+  error: unknown,
+) {
+  const dbError = error as ThreadDbError
+
+  console.error(`[thread:${operation}] Database error`, {
+    ...context,
+    code: dbError?.code,
+    constraintName: dbError?.constraint_name,
+    detail: dbError?.detail,
+    tableName: dbError?.table_name,
+    error,
+  })
+}
+
 export async function createThread(
   userId: string,
   data: Partial<ThreadData>,
 ): Promise<Thread> {
-  const [newThread] = await db
-    .insert(threads)
-    .values({
-      chatId: data.chatId || crypto.randomUUID(),
-      userId,
-      diagram: data.diagram || '',
-      schemasSql: data.schemasSql || '',
-      schemasMongo: data.schemasMongo || '',
-      conversation: data.conversation || [],
-    })
-    .returning()
+  const resolvedChatId = data.chatId || crypto.randomUUID()
 
-  return newThread
+  try {
+    const [newThread] = await db
+      .insert(threads)
+      .values({
+        chatId: resolvedChatId,
+        userId,
+        diagram: data.diagram || '',
+        schemasSql: data.schemasSql || '',
+        schemasMongo: data.schemasMongo || '',
+        conversation: data.conversation || [],
+      })
+      .returning()
+
+    return newThread
+  } catch (error) {
+    logThreadDbError('createThread', { chatId: resolvedChatId, userId }, error)
+    throw error
+  }
 }
 
 export async function getThread(chatId: string): Promise<Thread | null> {
@@ -47,6 +79,7 @@ export async function getThread(chatId: string): Promise<Thread | null> {
 export async function updateThread(
   chatId: string,
   data: Partial<ThreadData>,
+  userId?: string,
 ): Promise<Thread | null> {
   const updateData: Partial<Thread> = {}
 
@@ -63,13 +96,22 @@ export async function updateThread(
 
   updateData.updatedAt = new Date()
 
-  const [updatedThread] = await db
-    .update(threads)
-    .set(updateData)
-    .where(eq(threads.chatId, chatId))
-    .returning()
+  try {
+    const [updatedThread] = await db
+      .update(threads)
+      .set(updateData)
+      .where(
+        userId
+          ? and(eq(threads.chatId, chatId), eq(threads.userId, userId))
+          : eq(threads.chatId, chatId),
+      )
+      .returning()
 
-  return updatedThread || null
+    return updatedThread || null
+  } catch (error) {
+    logThreadDbError('updateThread', { chatId, userId }, error)
+    throw error
+  }
 }
 
 export async function getThreadsByUserId(userId: string): Promise<Thread[]> {
@@ -127,11 +169,17 @@ export async function saveThreadForCurrentUser(
     throw new Error('User not authenticated')
   }
 
+  await ensureUserExistsInDb(user)
+
   const existingThread = await getThread(data.chatId)
+
+  if (existingThread && existingThread.userId !== user.id) {
+    throw new Error('Thread does not belong to the current user')
+  }
 
   if (existingThread) {
     // Update existing thread
-    const updated = await updateThread(data.chatId, data)
+    const updated = await updateThread(data.chatId, data, user.id)
     if (!updated) {
       throw new Error('Failed to update thread')
     }

@@ -1,6 +1,5 @@
 'use client'
 
-import defaultMessages from '@/constants/defaultMessages'
 import type { Thread } from '@/db/schema'
 import {
   compareJsonSchemas,
@@ -9,7 +8,7 @@ import {
   sendUserMessage,
   validateUserIntent,
 } from '@/lib/ai'
-import { getThread, saveThreadForCurrentUser } from '@/lib/thread'
+import { saveThreadForCurrentUser } from '@/lib/thread'
 import type { Message, Roles } from '@/types/chat'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -59,7 +58,6 @@ export const useChatStore = create<ChatStore>()(
           addMessageToChat,
           chatHistory: currentLocalHistory,
           chatDiagram: currentDiagramInStore,
-          chatSchemas,
         } = get()
 
         addMessageToChat(ROLES.user, messageText)
@@ -110,28 +108,38 @@ export const useChatStore = create<ChatStore>()(
             generateDatabaseScriptFromDiagram(aiDiagramResponse, 'mongo'),
           ])
 
+          const nextSql = sqlSchema.replaceAll(';;', ';\n') || ''
+          const nextMongo = mongodbSchema || ''
+
           set({
             chatSchemas: {
-              sql: sqlSchema.replaceAll(';;', ';\n') || '',
-              mongo: mongodbSchema || '',
+              sql: nextSql,
+              mongo: nextMongo,
             },
           })
 
           set({ chatDiagram: aiDiagramResponse })
 
-          // Save or update thread for the current user
-          await saveThreadForCurrentUser({
-            chatId,
-            diagram: aiDiagramResponse,
-            conversation: get().chatHistory || [],
-            schemasSql: chatSchemas.sql,
-            schemasMongo: chatSchemas.mongo,
-          })
+          try {
+            await saveThreadForCurrentUser({
+              chatId,
+              diagram: aiDiagramResponse,
+              conversation: get().chatHistory || [],
+              schemasSql: nextSql,
+              schemasMongo: nextMongo,
+            })
+          } catch (error) {
+            console.error('Error saving thread:', error)
+            addMessageToChat(
+              ROLES.assistant,
+              'Generé la respuesta, pero no pude guardar este chat. Revisa la base de datos e inténtalo de nuevo.',
+            )
+          }
         } catch (error) {
           console.error('Error sending message:', error)
           addMessageToChat(
             ROLES.assistant,
-            `Sorry, I encountered an error: ${(error as Error).message}`,
+            `Sorry, I encountered an error while generating the response: ${(error as Error).message}`,
           )
         } finally {
           set({ isLoading: false })
@@ -139,7 +147,6 @@ export const useChatStore = create<ChatStore>()(
       },
 
       loadChatThread: async (chatId: string, thread: Thread | null) => {
-        const { addMessageToChat } = get()
         set({ isLoading: true })
         try {
           if (thread) {
@@ -161,8 +168,8 @@ export const useChatStore = create<ChatStore>()(
               chatSchemas: { mongo: '', sql: '' },
               isLoading: false,
             })
-            //const randomIndex = Math.floor(Math.random() * defaultMessages.length);
-            //addMessageToChat(ROLES.assistant, defaultMessages[randomIndex]);
+            // const randomIndex = Math.floor(Math.random() * defaultMessages.length)
+            // addMessageToChat(ROLES.assistant, defaultMessages[randomIndex])
           }
         } catch (error) {
           console.error('Error loading chat thread:', error)

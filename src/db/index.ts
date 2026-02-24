@@ -9,5 +9,14 @@ if (!DATABASE_URL) {
 }
 
 // For query purposes
-const queryClient = postgres(DATABASE_URL)
+const globalForDb = globalThis as typeof globalThis & {
+  __schemaAiPgClient?: ReturnType<typeof postgres>
+}
+
+const queryClient = globalForDb.__schemaAiPgClient || postgres(DATABASE_URL)
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForDb.__schemaAiPgClient = queryClient
+}
+
 export const db = drizzle(queryClient, { schema })
