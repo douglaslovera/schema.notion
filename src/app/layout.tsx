@@ -2,7 +2,7 @@ import { ThemeSync } from '@/components/theme/theme-sync'
 import './globals.css'
 
 export const metadata = {
-  title: 'Schema.notion',
+  title: 'schema.notion',
   description: 'Diseña esquemas de bases de datos estilo Notion con IA',
 }
 

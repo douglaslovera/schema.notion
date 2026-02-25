@@ -1,8 +1,9 @@
 'use client'
 
 import type { Thread } from '@/db/schema'
+import { PENDING_STARTER_MESSAGE_PREFIX } from '@/constants/chat'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   ResizableHandle,
@@ -25,7 +26,14 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
   })
   const [isMobile, setIsMobile] = useState(false)
 
-  const { loadChatThread, chatId: storeChatId } = useChatStore()
+  const {
+    loadChatThread,
+    chatId: storeChatId,
+    chatHistory,
+    isLoading,
+    handleSendMessage,
+  } = useChatStore()
+  const processedStarterForChatIdRef = useRef<string | null>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: no need
   useEffect(() => {
@@ -38,6 +46,22 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
       }
     }
   }, [chatId, loadChatThread, storeChatId])
+
+  useEffect(() => {
+    if (processedStarterForChatIdRef.current === chatId) return
+    if (isLoading) return
+    if (storeChatId !== chatId) return
+    if ((chatHistory?.length || 0) > 0) return
+
+    const key = `${PENDING_STARTER_MESSAGE_PREFIX}${chatId}`
+    const pendingStarterMessage = sessionStorage.getItem(key)
+
+    if (!pendingStarterMessage?.trim()) return
+
+    processedStarterForChatIdRef.current = chatId
+    sessionStorage.removeItem(key)
+    void handleSendMessage(pendingStarterMessage, chatId)
+  }, [chatHistory, chatId, handleSendMessage, isLoading, storeChatId])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)')

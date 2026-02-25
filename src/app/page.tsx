@@ -1,7 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import {
   ArrowRight,
-  Database,
   GitBranch,
   MessageSquareText,
   Sparkles,
@@ -9,7 +8,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-import { ThemeToggleButton } from '@/components/theme/theme-toggle-button'
+import { LandingNavbar } from '@/components/navigation/landing-navbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,51 +43,18 @@ function PlaceholderFrame({
 
 export default async function LandingPage() {
   const user = await getCurrentUser()
-  const primaryHref = user ? PATHS.SCHEMAS : '/sign-in'
-  const primaryLabel = user ? 'Abrir workspace' : 'Iniciar sesión'
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="page-shell flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card">
-              <Database className="h-4 w-4" />
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-medium tracking-tight">schema.notion</p>
-              <p className="text-[11px] text-muted-foreground">Notion schema studio</p>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-1 md:flex">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="#producto">Producto</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="#flujo">Flujo</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="#faq">FAQ</Link>
-            </Button>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ThemeToggleButton compact />
-            <Button asChild size="sm">
-              <Link href={primaryHref}>{primaryLabel}</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <LandingNavbar user={user} />
 
       <main className="page-shell py-8 sm:py-12">
         <section className="grid gap-8 rounded-3xl border border-border/80 bg-card p-5 shadow-[0_1px_0_0_var(--line-subtle)] sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           <div className="space-y-6">
-            <Badge className="w-fit">Diseño de bases de datos con IA</Badge>
+            <Badge className="w-fit">Beta privada</Badge>
             <div className="space-y-4">
               <h1 className="editorial-title text-4xl leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                Diseña estructuras estilo Notion sin empezar desde cero.
+                Diseña tus Bases de Datos para Notion sin empezar desde cero.
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                 Describe tu sistema en lenguaje natural, conversa con la IA y
