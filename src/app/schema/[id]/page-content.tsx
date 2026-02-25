@@ -2,8 +2,7 @@
 
 import type { Thread } from '@/db/schema'
 
-import { useEffect } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   ResizableHandle,
@@ -24,6 +23,7 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
   const [panels, setPanels] = useState<Record<string, boolean>>({
     chat: true,
   })
+  const [isMobile, setIsMobile] = useState(false)
 
   const { loadChatThread, chatId: storeChatId } = useChatStore()
 
@@ -39,6 +39,20 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
     }
   }, [chatId, loadChatThread, storeChatId])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const syncMobileState = () => {
+      setIsMobile(mediaQuery.matches)
+      if (mediaQuery.matches) {
+        setPanels((prev) => ({ ...prev, chat: false }))
+      }
+    }
+
+    syncMobileState()
+    mediaQuery.addEventListener('change', syncMobileState)
+    return () => mediaQuery.removeEventListener('change', syncMobileState)
+  }, [])
+
   const togglePanel = (panel: string) => {
     setPanels((prev) => ({
       ...prev,
@@ -47,27 +61,41 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
-          {panels.chat && (
-            <>
-              <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
-                <Chat hidePanel={() => togglePanel('chat')} />
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-            </>
-          )}
-
-          <ResizablePanel defaultSize={70}>
+    <div className="h-screen bg-background">
+      <div className="h-full overflow-hidden">
+        {isMobile ? (
+          panels.chat ? (
+            <Chat hidePanel={() => togglePanel('chat')} isMobile />
+          ) : (
             <DiagramPanel
-              chatPanelIsShown={panels.chat}
+              chatPanelIsShown={false}
+              isMobile
               toggleChatPanel={(show) =>
                 setPanels((prev) => ({ ...prev, chat: show }))
               }
             />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          )
+        ) : (
+          <ResizablePanelGroup direction="horizontal">
+            {panels.chat && (
+              <>
+                <ResizablePanel defaultSize={28} minSize={22} maxSize={42}>
+                  <Chat hidePanel={() => togglePanel('chat')} />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+
+            <ResizablePanel defaultSize={panels.chat ? 72 : 100}>
+              <DiagramPanel
+                chatPanelIsShown={panels.chat}
+                toggleChatPanel={(show) =>
+                  setPanels((prev) => ({ ...prev, chat: show }))
+                }
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
     </div>
   )

@@ -1,44 +1,75 @@
-import { ConversationView } from "@/components/chat/conversation-view";
-import { ChatInput } from "@/components/chat/chat-input";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { useChatStore } from "@/stores/chat";
+import { ChatInput } from '@/components/chat/chat-input'
+import { ConversationView } from '@/components/chat/conversation-view'
+import { Button } from '@/components/ui/button'
+import { useChatStore } from '@/stores/chat'
+import { ChevronLeft, PanelLeftClose, Sparkles } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
-export default function Chat({ hidePanel }: { hidePanel: () => void }) {
-  const { chatHistory, isLoading } = useChatStore();
-  const scrollRef = useRef<HTMLDivElement>(null);
+export default function Chat({
+  hidePanel,
+  isMobile = false,
+}: {
+  hidePanel: () => void
+  isMobile?: boolean
+}) {
+  const { chatHistory, isLoading } = useChatStore()
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: no need
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [isLoading, chatHistory]);
+  }, [isLoading, chatHistory])
 
   return (
-    <div className="flex flex-col h-full border-r">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-lg font-medium">Chat</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={hidePanel}
-          aria-label="Ocultar Espacio 1"
-        >
-          <ChevronLeft className="" />
-        </Button>
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      <div className="border-b border-sidebar-border/90 px-4 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              Conversación
+            </p>
+            <h2 className="truncate text-sm font-medium tracking-tight">
+              Asistente de esquema
+            </h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={hidePanel}
+            aria-label={isMobile ? 'Volver al diagrama' : 'Ocultar chat'}
+            className="shrink-0"
+          >
+            {isMobile ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+
+        <div className="rounded-xl border border-sidebar-border bg-[color:var(--surface)] p-3">
+          <div className="flex items-start gap-2">
+            <Sparkles className="mt-0.5 h-4 w-4 text-muted-foreground" />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Describe el sistema que quieres modelar y luego pide cambios
+              específicos por iteraciones.
+            </p>
+          </div>
+        </div>
       </div>
-      <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-        <div className="flex flex-col h-full w-full">
-          <div className="flex-1 overflow-auto px-2 pb-4" ref={scrollRef}>
+
+      <div className="flex-1 overflow-hidden">
+        <div className="flex h-full flex-col">
+          <div className="min-h-0 flex-1 overflow-auto px-3 py-3" ref={scrollRef}>
             <ConversationView />
           </div>
-          <div className="pt-4 px-2 border-t">
+          <div className="border-t border-sidebar-border/90 px-3 py-3">
             <ChatInput />
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Background,
+  BackgroundVariant,
   Controls,
   MarkerType,
   ReactFlow,
@@ -103,7 +104,7 @@ export function Diagram() {
   )
   const [nodes, setNodes, onNodesChange] = useNodesState<AppNode>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<AppEdge>([])
-  const { setViewport } = useReactFlow()
+  const { fitView } = useReactFlow()
   const initialLayoutPerformedRef = useRef(false)
 
   useEffect(() => {
@@ -205,34 +206,14 @@ export function Diagram() {
       initialLayoutPerformedRef.current = true
 
       requestAnimationFrame(() => {
-        const positions = layouted.nodes.map((node) => ({
-          x: node.position.x,
-          y: node.position.y,
-          width: node.measured?.width || 288,
-          height:
-            node.measured?.height || 100 + node.data.properties.length * 34,
-        }))
-
-        const minX = Math.min(...positions.map((p) => p.x))
-        const minY = Math.min(...positions.map((p) => p.y))
-        const maxX = Math.max(...positions.map((p) => p.x + p.width))
-        const maxY = Math.max(...positions.map((p) => p.y + p.height))
-
-        const boxWidth = maxX - minX
-        const boxHeight = maxY - minY
-
-        const centerX = minX + boxWidth / 2
-        const centerY = minY + boxHeight / 2
-
-        const zoom = 0.95
-        setViewport({
-          x: window.innerWidth / 2 - centerX * zoom,
-          y: window.innerHeight / 2 - centerY * zoom,
-          zoom,
+        fitView({
+          padding: 0.18,
+          minZoom: 0.2,
+          maxZoom: 1.2,
         })
       })
     }
-  }, [nodes, edges, isMounted, setNodes, setViewport])
+  }, [nodes, edges, fitView, isMounted, setNodes])
 
   if (!isMounted) {
     return null
@@ -246,14 +227,24 @@ export function Diagram() {
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: '100%', height: '100%', background: 'transparent' }}
       minZoom={0.1}
       maxZoom={1.5}
       fitView={false}
+      proOptions={{ hideAttribution: true }}
     >
-      <Background />
-      <div className="text-black">
-        <Controls />
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={18}
+        size={1}
+        color="var(--canvas-dot)"
+      />
+      <div className="text-foreground">
+        <Controls
+          position="bottom-right"
+          className="[&>button]:!h-8 [&>button]:!w-8 [&>button]:!border-border [&>button]:!bg-card [&>button]:!text-foreground [&>button]:!shadow-xs [&>button:hover]:!bg-accent [&>button:hover]:!text-foreground"
+          showInteractive={false}
+        />
       </div>
     </ReactFlow>
   )

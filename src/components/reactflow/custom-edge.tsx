@@ -40,7 +40,7 @@ export default function CustomEdge({
               {
                 position: 'absolute',
                 transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-                fontSize: 12,
+                fontSize: 11,
                 pointerEvents: 'none',
                 borderColor:
                   typeof style === 'object' && style && 'stroke' in style
@@ -48,7 +48,7 @@ export default function CustomEdge({
                     : undefined,
               } satisfies CSSProperties
             }
-            className="nodrag nopan bg-background text-foreground border border-muted-foreground/50 rounded-md px-2 py-1"
+            className="nodrag nopan rounded-full border bg-background/95 px-2.5 py-1 text-muted-foreground shadow-xs backdrop-blur-sm"
           >
             {label}
           </div>

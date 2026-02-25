@@ -1,12 +1,12 @@
 const PASTEL_PALETTE = [
-  { background: '#FDECC8', border: '#EAB96B', text: '#533A0B' }, // yellow
-  { background: '#F9DDE1', border: '#E6A2AE', text: '#5E1F2B' }, // red/pink
-  { background: '#DFF1E4', border: '#9DCCA8', text: '#1D4A2A' }, // green
-  { background: '#DCEEFE', border: '#97C0EC', text: '#123A63' }, // blue
-  { background: '#EADFFA', border: '#B79CE8', text: '#3D2466' }, // purple
-  { background: '#FBE7D4', border: '#EAB98A', text: '#5E3510' }, // orange
-  { background: '#E6F4F1', border: '#9FD0C6', text: '#1B4B43' }, // teal
-  { background: '#EFE9E2', border: '#CDBEAF', text: '#4A3A2B' }, // brown/gray
+  { background: '#F7ECD3', border: '#D9BD82', text: '#4E3A16' }, // sand
+  { background: '#F2E2E5', border: '#D4A9B3', text: '#4A2C33' }, // rose
+  { background: '#E2EFE4', border: '#A6C4AA', text: '#25412A' }, // green
+  { background: '#E1ECF8', border: '#A4BEDF', text: '#203A57' }, // blue
+  { background: '#EAE4F4', border: '#B8A9D6', text: '#352B4F' }, // violet
+  { background: '#F5E7DB', border: '#D4B191', text: '#51351E' }, // clay
+  { background: '#E4F0EE', border: '#A5C8C1', text: '#1F433E' }, // mint
+  { background: '#ECE7DF', border: '#C4B8A8', text: '#44382B' }, // taupe
 ] as const
 
 export type NotionColor = (typeof PASTEL_PALETTE)[number]

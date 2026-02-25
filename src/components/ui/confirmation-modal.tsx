@@ -28,8 +28,8 @@ export function ConfirmationModal({
   onConfirm,
   title,
   description,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
   isLoading = false,
 }: ConfirmationModalProps) {
   if (!isOpen) {
@@ -38,17 +38,25 @@ export function ConfirmationModal({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-2xl border-border/80 p-5 sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle className="text-base">{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose} disabled={isLoading}>
+          <AlertDialogCancel
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-lg"
+          >
             {cancelText}
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? 'Processing...' : confirmText}
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="rounded-lg"
+          >
+            {isLoading ? 'Procesando...' : confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
