@@ -29,10 +29,7 @@ export function LandingNavbar({ user }: LandingNavbarProps) {
 
         <nav className="hidden items-center gap-1 md:flex">
           <Button asChild variant="ghost" size="sm">
-            <Link href="#producto">Producto</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="#flujo">Flujo</Link>
+            <Link href="#como-empezar">Cómo empezar</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link href="#faq">FAQ</Link>

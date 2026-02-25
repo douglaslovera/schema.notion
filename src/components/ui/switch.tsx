@@ -29,8 +29,7 @@ export function Switch({
         if (!disabled) onCheckedChange(!checked)
       }}
       className={cn(
-        'peer inline-flex h-6 w-10 shrink-0 items-center rounded-full border border-border transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-primary/90' : 'bg-muted',
+        'peer inline-flex h-6 w-10 shrink-0 items-center rounded-full border border-border transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 bg-primary/90',
         className,
       )}
       {...props}
