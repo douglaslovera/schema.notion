@@ -230,6 +230,8 @@ export function Diagram() {
       style={{ width: '100%', height: '100%', background: 'transparent' }}
       minZoom={0.1}
       maxZoom={1.5}
+      zoomOnScroll={false}
+      panOnScroll
       fitView={false}
       proOptions={{ hideAttribution: true }}
     >
