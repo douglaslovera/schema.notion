@@ -1,5 +1,5 @@
 export const PATHS = {
   HOME: '/',
-  CHAT: '/schemas',
+  CHAT: '/schema',
   SCHEMAS: '/schemas',
 } as const

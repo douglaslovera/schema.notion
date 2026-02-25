@@ -10,7 +10,7 @@ type LandingNavbarProps = {
 
 export function LandingNavbar({ user }: LandingNavbarProps) {
   const primaryHref = user ? PATHS.SCHEMAS : '/sign-in'
-  const primaryLabel = user ? 'Abrir workspace' : 'Iniciar sesión'
+  const primaryLabel = user ? 'Mis esquemas' : 'Iniciar sesión'
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">

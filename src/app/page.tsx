@@ -65,7 +65,7 @@ export default async function LandingPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">
-                <Link href={PATHS.CHAT}>
+                <Link href={PATHS.SCHEMAS}>
                   Crear un esquema
                   <ArrowRight className="h-4 w-4" />
                 </Link>
