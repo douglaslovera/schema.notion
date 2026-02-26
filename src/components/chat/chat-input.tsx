@@ -64,7 +64,7 @@ export function ChatInput() {
         />
         <div className="mt-2 flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] text-muted-foreground">
-            Sé específico con entidades y relaciones. <kbd className="rounded border border-border px-1 font-mono text-[10px]">Enter</kbd> envía, <kbd className="rounded border border-border px-1 font-mono text-[10px]">Shift + Enter</kbd> agrega línea.
+            <kbd className="rounded border border-border px-1 font-mono text-[10px]">Enter</kbd> envía, <kbd className="rounded border border-border px-1 font-mono text-[10px]">Shift + Enter</kbd> agrega línea.
           </p>
           <Button
             type="submit"

@@ -19,5 +19,5 @@ export default async function Schema({ params }: PageProps) {
     redirect('/schemas')
   }
 
-  return <PageContent thread={thread} chatId={chatId} />
+  return <PageContent thread={thread} chatId={chatId} user={user} />
 }

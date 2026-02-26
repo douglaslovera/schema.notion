@@ -1,11 +1,7 @@
 'use client'
 
 import type { Thread } from '@/db/schema'
-import {
-  normalizeChat,
-  sendUserMessage,
-  validateUserIntent,
-} from '@/lib/ai'
+import { normalizeChat, sendUserMessage, validateUserIntent } from '@/lib/ai'
 import { saveThreadForCurrentUser } from '@/lib/thread'
 import type { Message, Roles } from '@/types/chat'
 import { create } from 'zustand'
@@ -21,11 +17,25 @@ interface ChatStore {
   chatHistory: Message[] | null
   chatId: string | null
   chatDiagram: string | null
+  diagramNodePositionsByChatId: Record<
+    string,
+    Record<string, { x: number; y: number }>
+  >
   isLoading: boolean
 
   addMessageToChat: (role: Roles, text: string, diagram?: string) => void
   handleSendMessage: (messageText: string, chatId: string) => Promise<void>
   loadChatThread: (chatId: string, thread: Thread | null) => Promise<void>
+  setDiagramNodePositions: (
+    chatId: string,
+    positions: Record<string, { x: number; y: number }>,
+  ) => void
+  mergeDiagramNodePositions: (
+    chatId: string,
+    positions: Record<string, { x: number; y: number }>,
+  ) => void
+  pruneDiagramNodePositions: (chatId: string, validNodeIds: string[]) => void
+  clearDiagramNodePositions: (chatId: string) => void
 }
 
 export const useChatStore = create<ChatStore>()(
@@ -35,6 +45,7 @@ export const useChatStore = create<ChatStore>()(
       chatHistory: null,
       chatId: null,
       chatDiagram: null,
+      diagramNodePositionsByChatId: {},
       isLoading: false,
 
       addMessageToChat: (role: Roles, text: string, diagram?: string) => {
@@ -151,6 +162,70 @@ export const useChatStore = create<ChatStore>()(
             isLoading: false,
           })
         }
+      },
+
+      setDiagramNodePositions: (chatId, positions) => {
+        set((state) => ({
+          diagramNodePositionsByChatId: {
+            ...state.diagramNodePositionsByChatId,
+            [chatId]: positions,
+          },
+        }))
+      },
+
+      mergeDiagramNodePositions: (chatId, positions) => {
+        set((state) => ({
+          diagramNodePositionsByChatId: {
+            ...state.diagramNodePositionsByChatId,
+            [chatId]: {
+              ...(state.diagramNodePositionsByChatId[chatId] || {}),
+              ...positions,
+            },
+          },
+        }))
+      },
+
+      pruneDiagramNodePositions: (chatId, validNodeIds) => {
+        set((state) => {
+          const currentPositions = state.diagramNodePositionsByChatId[chatId]
+          if (!currentPositions) return state
+
+          const validIds = new Set(validNodeIds)
+          const nextPositions = Object.fromEntries(
+            Object.entries(currentPositions).filter(([nodeId]) =>
+              validIds.has(nodeId),
+            ),
+          )
+
+          if (
+            Object.keys(nextPositions).length ===
+            Object.keys(currentPositions).length
+          ) {
+            return state
+          }
+
+          return {
+            diagramNodePositionsByChatId: {
+              ...state.diagramNodePositionsByChatId,
+              [chatId]: nextPositions,
+            },
+          }
+        })
+      },
+
+      clearDiagramNodePositions: (chatId) => {
+        set((state) => {
+          if (!(chatId in state.diagramNodePositionsByChatId)) {
+            return state
+          }
+
+          const next = { ...state.diagramNodePositionsByChatId }
+          delete next[chatId]
+
+          return {
+            diagramNodePositionsByChatId: next,
+          }
+        })
       },
     }),
     {

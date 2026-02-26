@@ -78,7 +78,7 @@ export function ThreadList({ threads }: { threads: ThreadWithTitle[] }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-3 top-3 z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute right-3 bottom-3 z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 onClick={(e) => handleDeleteClick(e, thread)}
                 type="button"
                 disabled={isDeleting}

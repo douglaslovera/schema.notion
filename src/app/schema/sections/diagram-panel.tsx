@@ -1,8 +1,8 @@
-import { LogoutButton } from '@/components/logout-button'
-import { ThemeToggleButton } from '@/components/theme/theme-toggle-button'
+import { AccountMenu } from '@/components/account/account-menu'
 import { Diagram } from '@/components/reactflow/diagram'
 import { Button } from '@/components/ui/button'
 import { PATHS } from '@/constants/paths'
+import type { User } from '@/lib/auth'
 import { parseNotionSchemaGraph } from '@/lib/parse-utils'
 import { useChatStore } from '@/stores/chat'
 import { ReactFlowProvider } from '@xyflow/react'
@@ -13,10 +13,12 @@ export default function DiagramPanel({
   chatPanelIsShown,
   toggleChatPanel,
   isMobile = false,
+  user,
 }: {
   chatPanelIsShown: boolean
   toggleChatPanel: (show: boolean) => void
   isMobile?: boolean
+  user: User
 }) {
   const { isLoading, chatDiagram } = useChatStore()
   const parsedGraph = parseNotionSchemaGraph(chatDiagram || '')
@@ -41,36 +43,35 @@ export default function DiagramPanel({
               </Button>
             ) : null}
 
-          {!chatPanelIsShown && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleChatPanel(true)}
-              aria-label="Mostrar chat"
-              className="rounded-xl"
-            >
-              <PanelLeftOpen className="mr-2 h-4 w-4" />
-              Mostrar chat
-            </Button>
-          )}
+            {!chatPanelIsShown && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleChatPanel(true)}
+                aria-label="Mostrar chat"
+                className="rounded-xl"
+              >
+                <PanelLeftOpen className="mr-2 h-4 w-4" />
+                Mostrar chat
+              </Button>
+            )}
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Link href={PATHS.SCHEMAS} className="hover:text-foreground">
-                Chats
-              </Link>
-              <ChevronRight className="h-3.5 w-3.5" />
-              <span className="truncate">Workspace</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Link href={PATHS.SCHEMAS} className="hover:text-foreground">
+                  Chats
+                </Link>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <span className="truncate">Workspace</span>
+              </div>
+              <h2 className="truncate text-sm font-medium tracking-tight sm:text-base">
+                {workspaceTitle}
+              </h2>
             </div>
-            <h2 className="truncate text-sm font-medium tracking-tight sm:text-base">
-              {workspaceTitle}
-            </h2>
           </div>
-        </div>
 
           <div className="flex items-center gap-2">
-            <ThemeToggleButton compact />
-            <LogoutButton iconOnly />
+            <AccountMenu user={user} />
           </div>
         </div>
       </div>

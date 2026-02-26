@@ -1,7 +1,8 @@
 'use client'
 
-import type { Thread } from '@/db/schema'
 import { PENDING_STARTER_MESSAGE_PREFIX } from '@/constants/chat'
+import type { Thread } from '@/db/schema'
+import type { User } from '@/lib/auth'
 
 import { useEffect, useRef, useState } from 'react'
 
@@ -18,9 +19,15 @@ import DiagramPanel from '../sections/diagram-panel'
 type PageContentProps = {
   thread: Thread | null
   chatId: string
+  user: User
 }
 
-export default function PageContent({ thread, chatId }: PageContentProps) {
+export default function PageContent({
+  thread,
+  chatId,
+  user,
+}: PageContentProps) {
+  const [hasMounted, setHasMounted] = useState(false)
   const [panels, setPanels] = useState<Record<string, boolean>>({
     chat: true,
   })
@@ -64,6 +71,10 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
   }, [chatHistory, chatId, handleSendMessage, isLoading, storeChatId])
 
   useEffect(() => {
+    setHasMounted(true)
+  }, [])
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)')
     const syncMobileState = () => {
       setIsMobile(mediaQuery.matches)
@@ -84,6 +95,10 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
     }))
   }
 
+  if (!hasMounted) {
+    return <div className="h-screen bg-background" />
+  }
+
   return (
     <div className="h-screen bg-background">
       <div className="h-full overflow-hidden">
@@ -94,6 +109,7 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
             <DiagramPanel
               chatPanelIsShown={false}
               isMobile
+              user={user}
               toggleChatPanel={(show) =>
                 setPanels((prev) => ({ ...prev, chat: show }))
               }
@@ -113,6 +129,7 @@ export default function PageContent({ thread, chatId }: PageContentProps) {
             <ResizablePanel defaultSize={panels.chat ? 72 : 100}>
               <DiagramPanel
                 chatPanelIsShown={panels.chat}
+                user={user}
                 toggleChatPanel={(show) =>
                   setPanels((prev) => ({ ...prev, chat: show }))
                 }

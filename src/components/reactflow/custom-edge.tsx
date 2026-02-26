@@ -1,6 +1,11 @@
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react'
-import type { CSSProperties } from 'react'
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  getSmoothStepPath,
+} from '@xyflow/react'
 import type { EdgeProps } from '@xyflow/react'
+import type { CSSProperties } from 'react'
 
 export default function CustomEdge({
   id,
@@ -11,18 +16,34 @@ export default function CustomEdge({
   sourcePosition,
   targetPosition,
   label,
+  data,
   style = {},
   markerEnd,
   markerStart,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  })
+  const lineMode =
+    (data as { lineMode?: 'straight' | 'curved' } | undefined)?.lineMode ||
+    'straight'
+
+  const [edgePath, labelX, labelY] =
+    lineMode === 'curved'
+      ? getBezierPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+        })
+      : getSmoothStepPath({
+          sourceX,
+          sourceY,
+          sourcePosition,
+          targetX,
+          targetY,
+          targetPosition,
+          borderRadius: 0,
+        })
 
   return (
     <>
