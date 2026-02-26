@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { useConfigStore } from '@/stores/config'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ChevronRight, LogIn, MoonStar, Settings, UserCircle2 } from 'lucide-react'
+import { ChevronRight, LogIn, MoonStar, Settings, UserCircle2, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 
 type AccountMenuUser = {
@@ -61,6 +61,15 @@ export function AccountMenu({
 
         <div className="my-1 h-px bg-border/80" />
 
+        <Link
+          href="/schemas"
+          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm opacity-80"
+        >
+          <span className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Esquemas
+          </span>
+        </Link>
         {/* <button
           type="button"
           disabled
