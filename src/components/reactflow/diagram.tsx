@@ -51,6 +51,13 @@ type AppEdge = Edge<{
 }>
 type NodePositionMap = Record<string, { x: number; y: number }>
 type LayoutIntent = 'none' | 'all' | 'missing-only'
+type DiagramProps = {
+  diagram?: string | null
+  chatId?: string | null
+  storedNodePositions?: NodePositionMap
+  persistNodePositions?: boolean
+  showCanvasActions?: boolean
+}
 
 const EMPTY_POSITIONS_BY_CHAT: Record<string, NodePositionMap> = {}
 const EMPTY_NODE_POSITIONS: NodePositionMap = {}
@@ -156,13 +163,19 @@ const getLayoutedElements = (
   }
 }
 
-export function Diagram() {
+export function Diagram({
+  diagram: controlledDiagram,
+  chatId: controlledChatId,
+  storedNodePositions,
+  persistNodePositions = true,
+  showCanvasActions = true,
+}: DiagramProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [edgeLineMode, setEdgeLineMode] = useState<EdgeLineMode>('straight')
-  const rawChatDiagram = useChatStore(
+  const storeChatDiagram = useChatStore(
     isMounted ? (state) => state.chatDiagram : () => null,
   )
-  const activeChatId = useChatStore(
+  const storeChatId = useChatStore(
     isMounted ? (state) => state.chatId : () => null,
   )
   const diagramNodePositionsByChatId = useChatStore(
@@ -193,10 +206,16 @@ export function Diagram() {
     latestNodesRef.current = nodes
   }, [nodes])
 
-  const activeStoredPositions =
-    isMounted && activeChatId
-      ? diagramNodePositionsByChatId[activeChatId] || EMPTY_NODE_POSITIONS
-      : EMPTY_NODE_POSITIONS
+  const usesStoreData = controlledDiagram === undefined
+  const rawChatDiagram = usesStoreData ? storeChatDiagram : controlledDiagram
+  const activeChatId = usesStoreData ? storeChatId : (controlledChatId ?? null)
+  const activeStoredPositions = persistNodePositions
+    ? usesStoreData
+      ? isMounted && activeChatId
+        ? diagramNodePositionsByChatId[activeChatId] || EMPTY_NODE_POSITIONS
+        : EMPTY_NODE_POSITIONS
+      : (storedNodePositions ?? EMPTY_NODE_POSITIONS)
+    : EMPTY_NODE_POSITIONS
 
   const fitCanvas = useCallback(() => {
     requestAnimationFrame(() => {
@@ -206,19 +225,19 @@ export function Diagram() {
 
   const persistPositionsForNodes = useCallback(
     (nodesToPersist: AppNode[]) => {
-      if (!activeChatId) return
+      if (!persistNodePositions || !activeChatId) return
       setDiagramNodePositions(
         activeChatId,
         extractNodePositions(nodesToPersist),
       )
     },
-    [activeChatId, setDiagramNodePositions],
+    [activeChatId, persistNodePositions, setDiagramNodePositions],
   )
 
   const persistLatestNodePositions = useCallback(() => {
-    if (!activeChatId) return
+    if (!persistNodePositions || !activeChatId) return
     persistPositionsForNodes(latestNodesRef.current)
-  }, [activeChatId, persistPositionsForNodes])
+  }, [activeChatId, persistNodePositions, persistPositionsForNodes])
 
   const applyLayout = useCallback(
     (mode: Exclude<LayoutIntent, 'none'>, fitAfterLayout: boolean) => {
@@ -269,13 +288,14 @@ export function Diagram() {
   }, [])
 
   const schedulePersistAfterDrag = useCallback(() => {
+    if (!persistNodePositions) return
     requestAnimationFrame(() => {
       persistLatestNodePositions()
     })
-  }, [persistLatestNodePositions])
+  }, [persistLatestNodePositions, persistNodePositions])
 
   useEffect(() => {
-    if (!isMounted || rawChatDiagram === null) {
+    if ((usesStoreData && !isMounted) || rawChatDiagram === null) {
       setNodes([])
       setEdges([])
       pendingLayoutIntentRef.current = 'none'
@@ -284,10 +304,7 @@ export function Diagram() {
     }
 
     const graph = parseNotionSchemaGraph(rawChatDiagram)
-    const storedPositionsForChat = activeChatId
-      ? useChatStore.getState().diagramNodePositionsByChatId[activeChatId] ||
-        EMPTY_NODE_POSITIONS
-      : EMPTY_NODE_POSITIONS
+    const storedPositionsForChat = activeStoredPositions
     const databaseColorMap = new Map(
       graph.databases.map((database) => [
         database.id,
@@ -381,7 +398,7 @@ export function Diagram() {
     })
 
     const validNodeIds = newInitialNodes.map((node) => node.id)
-    if (activeChatId) {
+    if (persistNodePositions && activeChatId) {
       pruneDiagramNodePositions(activeChatId, validNodeIds)
     }
 
@@ -408,8 +425,11 @@ export function Diagram() {
     setEdges(newInitialEdges)
   }, [
     isMounted,
+    usesStoreData,
     rawChatDiagram,
     activeChatId,
+    activeStoredPositions,
+    persistNodePositions,
     edgeLineMode,
     pruneDiagramNodePositions,
     setNodes,
@@ -473,7 +493,7 @@ export function Diagram() {
   }, [nodes, setEdges])
 
   useEffect(() => {
-    if (!isMounted || nodes.length === 0) {
+    if ((usesStoreData && !isMounted) || nodes.length === 0) {
       return
     }
 
@@ -491,9 +511,9 @@ export function Diagram() {
     pendingLayoutShouldFitRef.current = false
 
     applyLayout(pendingLayoutIntent, shouldFit)
-  }, [nodes, isMounted, applyLayout])
+  }, [nodes, isMounted, usesStoreData, applyLayout])
 
-  if (!isMounted) {
+  if (usesStoreData && !isMounted) {
     return null
   }
 
@@ -505,8 +525,10 @@ export function Diagram() {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onNodeDragStop={schedulePersistAfterDrag}
-      onSelectionDragStop={schedulePersistAfterDrag}
+      onNodeDragStop={persistNodePositions ? schedulePersistAfterDrag : undefined}
+      onSelectionDragStop={
+        persistNodePositions ? schedulePersistAfterDrag : undefined
+      }
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       style={{ width: '100%', height: '100%', background: 'transparent' }}
@@ -524,32 +546,36 @@ export function Diagram() {
         color="var(--canvas-dot)"
       />
 
-      <Panel position="bottom-left" className="mb-28 ml-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleFormatCanvas}
-            disabled={!canFormatCanvas}
-            className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Formatear canvas"
-            title="Formatear canvas"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span>Formatear</span>
-          </button>
+      {showCanvasActions ? (
+        <Panel position="bottom-left" className="mb-28 ml-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleFormatCanvas}
+              disabled={!canFormatCanvas}
+              className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Formatear canvas"
+              title="Formatear canvas"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Formatear</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={toggleEdgeLineMode}
-            disabled={edges.length === 0}
-            className="flex h-8 items-center rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Cambiar estilo de líneas"
-            title="Cambiar líneas entre rectas y curvas"
-          >
-            {edgeLineMode === 'straight' ? 'Líneas: rectas' : 'Líneas: curvas'}
-          </button>
-        </div>
-      </Panel>
+            <button
+              type="button"
+              onClick={toggleEdgeLineMode}
+              disabled={edges.length === 0}
+              className="flex h-8 items-center rounded-md border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Cambiar estilo de líneas"
+              title="Cambiar líneas entre rectas y curvas"
+            >
+              {edgeLineMode === 'straight'
+                ? 'Líneas: rectas'
+                : 'Líneas: curvas'}
+            </button>
+          </div>
+        </Panel>
+      ) : null}
 
       <div className="text-foreground">
         <Controls

@@ -23,9 +23,13 @@ export const threads = pgTable('threads', {
   userId: text('user_id').notNull(),
   diagram: text('diagram').default('').notNull(),
   conversation: jsonb('conversation').$type<Message[]>().default([]).notNull(),
+  isCanvasShared: boolean('is_canvas_shared').default(false).notNull(),
+  shareToken: text('share_token'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+}, (table) => ({
+  shareTokenUnique: uniqueIndex('threads_share_token_unique').on(table.shareToken),
+}))
 
 export const authUser = pgTable('user', {
   id: text('id').primaryKey(),

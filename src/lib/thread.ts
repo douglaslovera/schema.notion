@@ -11,6 +11,13 @@ export interface ThreadData {
   userId: string
   diagram?: string
   conversation?: Message[]
+  isCanvasShared?: boolean
+  shareToken?: string | null
+}
+
+export interface SharedCanvasThread {
+  chatId: string
+  diagram: string
 }
 
 type ThreadDbError = {
@@ -81,6 +88,9 @@ export async function updateThread(
   if (data.diagram !== undefined) updateData.diagram = data.diagram
   if (data.conversation !== undefined)
     updateData.conversation = data.conversation
+  if (data.isCanvasShared !== undefined)
+    updateData.isCanvasShared = data.isCanvasShared
+  if (data.shareToken !== undefined) updateData.shareToken = data.shareToken
 
   if (Object.keys(updateData).length === 0) {
     return await getThread(chatId)
@@ -123,6 +133,60 @@ export async function deleteThread(chatId: string): Promise<boolean> {
     .returning()
 
   return !!deletedThread
+}
+
+export async function enableCanvasSharing(chatId: string): Promise<string> {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const thread = await getThread(chatId)
+
+  if (!thread || thread.userId !== user.id) {
+    throw new Error('Thread not found')
+  }
+
+  if (thread.isCanvasShared && thread.shareToken) {
+    return thread.shareToken
+  }
+
+  const shareToken = thread.shareToken || crypto.randomUUID().replaceAll('-', '')
+
+  const updatedThread = await updateThread(
+    chatId,
+    {
+      isCanvasShared: true,
+      shareToken,
+    },
+    user.id,
+  )
+
+  if (!updatedThread?.shareToken) {
+    throw new Error('Failed to enable canvas sharing')
+  }
+
+  return updatedThread.shareToken
+}
+
+export async function getSharedThreadByToken(
+  shareToken: string,
+): Promise<SharedCanvasThread | null> {
+  const [thread] = await db
+    .select({
+      chatId: threads.chatId,
+      diagram: threads.diagram,
+    })
+    .from(threads)
+    .where(
+      and(
+        eq(threads.shareToken, shareToken),
+        eq(threads.isCanvasShared, true),
+      ),
+    )
+    .limit(1)
+
+  return thread || null
 }
 
 export async function duplicateThread(

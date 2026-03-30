@@ -1,4 +1,5 @@
 import { AccountMenu } from '@/components/account/account-menu'
+import { ShareCanvasButton } from '@/components/share/share-canvas-button'
 import { Diagram } from '@/components/reactflow/diagram'
 import { Button } from '@/components/ui/button'
 import { PATHS } from '@/constants/paths'
@@ -11,11 +12,13 @@ import Link from 'next/link'
 
 export default function DiagramPanel({
   chatPanelIsShown,
+  chatId,
   toggleChatPanel,
   isMobile = false,
   user,
 }: {
   chatPanelIsShown: boolean
+  chatId: string
   toggleChatPanel: (show: boolean) => void
   isMobile?: boolean
   user: User
@@ -71,6 +74,7 @@ export default function DiagramPanel({
           </div>
 
           <div className="flex items-center gap-2">
+            <ShareCanvasButton chatId={chatId} disabled={!chatDiagram || isLoading} />
             <AccountMenu user={user} />
           </div>
         </div>

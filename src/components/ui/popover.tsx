@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -34,14 +35,29 @@ function usePopoverContext() {
 export function Popover({
   children,
   defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   children: ReactNode
   defaultOpen?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
   const triggerRef = useRef<HTMLElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const contentId = useId()
+  const open = controlledOpen ?? uncontrolledOpen
+
+  const setOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (controlledOpen === undefined) {
+        setUncontrolledOpen(nextOpen)
+      }
+      onOpenChange?.(nextOpen)
+    },
+    [controlledOpen, onOpenChange],
+  )
 
   const value = useMemo(
     () => ({
@@ -51,7 +67,7 @@ export function Popover({
       contentRef,
       contentId,
     }),
-    [open, contentId],
+    [open, setOpen, contentId],
   )
 
   return (

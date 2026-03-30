@@ -8,6 +8,13 @@
       "when": 1771964905087,
       "tag": "0000_blushing_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774909359760,
+      "tag": "0001_wealthy_inertia",
+      "breakpoints": true
     }
   ]
 }

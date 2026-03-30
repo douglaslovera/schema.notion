@@ -108,6 +108,7 @@ export default function PageContent({
           ) : (
             <DiagramPanel
               chatPanelIsShown={false}
+              chatId={chatId}
               isMobile
               user={user}
               toggleChatPanel={(show) =>
@@ -129,6 +130,7 @@ export default function PageContent({
             <ResizablePanel defaultSize={panels.chat ? 72 : 100}>
               <DiagramPanel
                 chatPanelIsShown={panels.chat}
+                chatId={chatId}
                 user={user}
                 toggleChatPanel={(show) =>
                   setPanels((prev) => ({ ...prev, chat: show }))
