@@ -72,6 +72,7 @@ Responde SIEMPRE con JSON válido y completo. No incluyas texto adicional, comen
       "targetDatabaseId": string,
       "targetDatabaseName": string,
       "direction": "one_way" | "two_way",
+      "targetPropertyName": string (opcional; usarlo cuando la línea deba anclarse a una propiedad específica en la base destino),
       "pairedPropertyName": string (requerido si direction = "two_way")
     }
 
@@ -80,6 +81,7 @@ Responde SIEMPRE con JSON válido y completo. No incluyas texto adicional, comen
 - Debes dejar CLARO si la relación es:
   - "one_way" (solo visible en una base de datos)
   - "two_way" (bidireccional / ambas bases muestran relación)
+- Cuando conozcas la propiedad exacta del destino a la que corresponde la relación, incluye "targetPropertyName".
 - Si es "two_way", incluye "pairedPropertyName".
 - Usa "targetDatabaseId" para enlazar con el "id" real de la base de datos destino.
 

@@ -11,8 +11,8 @@ import type {
   ValidationResult,
 } from '../types'
 
-const MAIN_MODEL = 'gemini-2.5-flash-preview-04-17'
-const MISC_MODEL = 'gemini-2.0-flash'
+const MAIN_MODEL = 'gemini-flash-latest'
+const MISC_MODEL = 'gemini-flash-latest'
 
 export function createGeminiProvider(): AIProvider {
   const apiKey = process.env.GEMINI_API_KEY

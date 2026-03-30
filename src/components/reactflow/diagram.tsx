@@ -23,6 +23,12 @@ import { LayoutGrid } from 'lucide-react'
 import CustomEdge from './custom-edge'
 import CustomNode from './custom-node'
 import { getNotionDatabaseColor } from './notion-colors'
+import {
+  type HandleSide,
+  getDefaultTargetHandleId,
+  getPropertySourceHandleId,
+  getPropertyTargetHandleId,
+} from './property-handles'
 
 interface NodeData {
   label: string
@@ -38,7 +44,11 @@ interface NodeData {
 
 type AppNode = Node<NodeData, string>
 type EdgeLineMode = 'straight' | 'curved'
-type AppEdge = Edge<{ lineMode: EdgeLineMode }>
+type AppEdge = Edge<{
+  lineMode: EdgeLineMode
+  sourcePropertyName?: string
+  targetPropertyName?: string
+}>
 type NodePositionMap = Record<string, { x: number; y: number }>
 type LayoutIntent = 'none' | 'all' | 'missing-only'
 
@@ -73,6 +83,25 @@ function extractNodePositions(nodes: AppNode[]): NodePositionMap {
   return Object.fromEntries(
     nodes.map((node) => [node.id, { x: node.position.x, y: node.position.y }]),
   )
+}
+
+function getNodeCenterX(node: AppNode) {
+  const width = node.measured?.width || 260
+  const x = node.position.x
+  return x + width / 2
+}
+
+function getFacingHandleSides(
+  sourceNode: AppNode | undefined,
+  targetNode: AppNode | undefined,
+): { sourceSide: HandleSide; targetSide: HandleSide } {
+  if (!sourceNode || !targetNode) {
+    return { sourceSide: 'right', targetSide: 'left' }
+  }
+
+  return getNodeCenterX(sourceNode) <= getNodeCenterX(targetNode)
+    ? { sourceSide: 'right', targetSide: 'left' }
+    : { sourceSide: 'left', targetSide: 'right' }
 }
 
 const getLayoutedElements = (
@@ -293,19 +322,41 @@ export function Diagram() {
       const targetColor =
         databaseColorMap.get(relation.targetDatabaseId)?.border || '#94a3b8'
       const isBidirectional = relation.direction === 'two_way'
+      const sourceNode = newInitialNodes.find(
+        (node) => node.id === relation.sourceDatabaseId,
+      )
+      const targetNode = newInitialNodes.find(
+        (node) => node.id === relation.targetDatabaseId,
+      )
+      const { sourceSide, targetSide } = getFacingHandleSides(
+        sourceNode,
+        targetNode,
+      )
 
       const label = isBidirectional
         ? `${relation.sourcePropertyName} ↔ ${relation.targetDatabaseName}${relation.pairedPropertyName ? ` (${relation.pairedPropertyName})` : ''}`
-        : `${relation.sourcePropertyName} → ${relation.targetDatabaseName}`
+        : `${relation.sourcePropertyName} → ${relation.targetDatabaseName}${relation.targetPropertyName ? ` (${relation.targetPropertyName})` : ''}`
 
       return {
         id: relation.id,
         source: relation.sourceDatabaseId,
         target: relation.targetDatabaseId,
+        sourceHandle: getPropertySourceHandleId(
+          relation.sourcePropertyName,
+          sourceSide,
+        ),
+        targetHandle: relation.targetPropertyName
+          ? getPropertyTargetHandleId(
+              relation.targetPropertyName,
+              targetSide,
+            )
+          : getDefaultTargetHandleId(targetSide),
         label,
         type: 'custom',
         data: {
           lineMode: edgeLineMode,
+          sourcePropertyName: relation.sourcePropertyName,
+          targetPropertyName: relation.targetPropertyName,
         },
         style: {
           stroke: targetColor,
@@ -376,6 +427,50 @@ export function Diagram() {
       })),
     )
   }, [edgeLineMode, setEdges])
+
+  useEffect(() => {
+    if (nodes.length === 0) {
+      return
+    }
+
+    const nodesById = new Map(nodes.map((node) => [node.id, node]))
+
+    setEdges((currentEdges) => {
+      let changed = false
+
+      const nextEdges = currentEdges.map((edge) => {
+        const sourceNode = nodesById.get(edge.source)
+        const targetNode = nodesById.get(edge.target)
+        const { sourceSide, targetSide } = getFacingHandleSides(
+          sourceNode,
+          targetNode,
+        )
+        const nextSourceHandle = edge.data?.sourcePropertyName
+          ? getPropertySourceHandleId(edge.data.sourcePropertyName, sourceSide)
+          : edge.sourceHandle
+        const nextTargetHandle = edge.data?.targetPropertyName
+          ? getPropertyTargetHandleId(edge.data.targetPropertyName, targetSide)
+          : getDefaultTargetHandleId(targetSide)
+
+        if (
+          edge.sourceHandle === nextSourceHandle &&
+          edge.targetHandle === nextTargetHandle
+        ) {
+          return edge
+        }
+
+        changed = true
+
+        return {
+          ...edge,
+          sourceHandle: nextSourceHandle,
+          targetHandle: nextTargetHandle,
+        }
+      })
+
+      return changed ? nextEdges : currentEdges
+    })
+  }, [nodes, setEdges])
 
   useEffect(() => {
     if (!isMounted || nodes.length === 0) {

@@ -3,11 +3,25 @@
 import {
   notionWorkspaceSchema,
   type ParsedNotionGraph,
+  type ParsedNotionRelationEdge,
   type ParsedNotionProperty,
 } from '@/types/notion-schema'
 
 const PROPERTY_TYPE_ALIASES: Record<string, string> = {
   text: 'rich_text',
+}
+
+function getBidirectionalRelationKey(relation: ParsedNotionRelationEdge) {
+  if (relation.direction !== 'two_way' || !relation.targetPropertyName) {
+    return null
+  }
+
+  const endpoints = [
+    `${relation.sourceDatabaseId}:${relation.sourcePropertyName}`,
+    `${relation.targetDatabaseId}:${relation.targetPropertyName}`,
+  ].toSorted()
+
+  return endpoints.join('<->')
 }
 
 function normalizeNotionSchemaInput(input: unknown): unknown {
@@ -92,8 +106,8 @@ export function parseNotionSchemaGraph(jsonString: string): ParsedNotionGraph {
       }
     })
 
-    const relations = databases.flatMap((db) =>
-      db.properties.flatMap((property) => {
+    const rawRelations = databases.flatMap((db) =>
+      db.properties.flatMap((property): ParsedNotionRelationEdge[] => {
         if (!property.isRelation || !property.relation || !property.relationResolved) {
           if (property.isRelation && !property.relationResolved) {
             console.warn(
@@ -111,12 +125,32 @@ export function parseNotionSchemaGraph(jsonString: string): ParsedNotionGraph {
             sourcePropertyName: property.name,
             targetDatabaseId: property.relation.targetDatabaseId,
             targetDatabaseName: property.relation.targetDatabaseName,
+            targetPropertyName:
+              property.relation.direction === 'two_way'
+                ? property.relation.pairedPropertyName
+                : property.relation.targetPropertyName,
             direction: property.relation.direction,
             pairedPropertyName: property.relation.pairedPropertyName,
           },
         ]
       }),
     )
+
+    const seenBidirectionalRelationKeys = new Set<string>()
+    const relations = rawRelations.filter((relation) => {
+      const bidirectionalRelationKey = getBidirectionalRelationKey(relation)
+
+      if (!bidirectionalRelationKey) {
+        return true
+      }
+
+      if (seenBidirectionalRelationKeys.has(bidirectionalRelationKey)) {
+        return false
+      }
+
+      seenBidirectionalRelationKeys.add(bidirectionalRelationKey)
+      return true
+    })
 
     return {
       workspaceName: schema.workspace.name,

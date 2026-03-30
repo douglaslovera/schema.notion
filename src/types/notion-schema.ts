@@ -32,6 +32,7 @@ export interface RelationPropertyMetadata {
   targetDatabaseId: string
   targetDatabaseName: string
   direction: RelationDirection
+  targetPropertyName?: string
   pairedPropertyName?: string
 }
 
@@ -70,6 +71,7 @@ const relationMetadataSchema = z
     targetDatabaseId: z.string().min(1),
     targetDatabaseName: z.string().min(1),
     direction: z.enum(['one_way', 'two_way']),
+    targetPropertyName: z.string().min(1).optional(),
     pairedPropertyName: z.string().min(1).optional(),
   })
   .superRefine((value, ctx) => {
@@ -158,6 +160,7 @@ export interface ParsedNotionRelationEdge {
   sourcePropertyName: string
   targetDatabaseId: string
   targetDatabaseName: string
+  targetPropertyName?: string
   direction: RelationDirection
   pairedPropertyName?: string
 }

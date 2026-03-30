@@ -1,6 +1,22 @@
 import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react'
 import { useEffect } from 'react'
 import type { NotionColor } from './notion-colors'
+import {
+  getDefaultSourceHandleId,
+  getDefaultTargetHandleId,
+  getPropertySourceHandleId,
+  getPropertyTargetHandleId,
+} from './property-handles'
+
+const hiddenHandleStyle = {
+  width: 10,
+  height: 10,
+  background: 'transparent',
+  border: 0,
+  opacity: 0,
+  pointerEvents: 'none' as const,
+  zIndex: 2,
+}
 
 type Props = {
   id: string
@@ -58,22 +74,26 @@ export default function CustomNode({ id, data }: Props) {
           <Handle
             type="target"
             position={Position.Left}
-            style={{
-              background: data.color.border,
-              width: 8,
-              height: 8,
-              zIndex: 2,
-            }}
+            id={getDefaultTargetHandleId('left')}
+            style={hiddenHandleStyle}
+          />
+          <Handle
+            type="source"
+            position={Position.Left}
+            id={getDefaultSourceHandleId('left')}
+            style={hiddenHandleStyle}
+          />
+          <Handle
+            type="target"
+            position={Position.Right}
+            id={getDefaultTargetHandleId('right')}
+            style={hiddenHandleStyle}
           />
           <Handle
             type="source"
             position={Position.Right}
-            style={{
-              background: data.color.border,
-              width: 8,
-              height: 8,
-              zIndex: 2,
-            }}
+            id={getDefaultSourceHandleId('right')}
+            style={hiddenHandleStyle}
           />
 
           <h1 className="truncate pr-4 text-[15px] font-semibold tracking-tight">
@@ -94,7 +114,7 @@ export default function CustomNode({ id, data }: Props) {
             {data.properties.map((property) => (
               <li
                 key={`${id}-${property.name}`}
-                className="flex items-start justify-between gap-2 rounded-xl border border-transparent bg-[color:var(--surface)] p-2 transition-colors hover:bg-accent/50"
+                className="relative flex items-start justify-between gap-2 rounded-xl border border-transparent bg-[color:var(--surface)] p-2 transition-colors hover:bg-accent/50"
                 style={
                   property.isRelation && property.targetDatabaseColor
                     ? {
@@ -104,6 +124,31 @@ export default function CustomNode({ id, data }: Props) {
                     : undefined
                 }
               >
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id={getPropertyTargetHandleId(property.name, 'left')}
+                  style={{ ...hiddenHandleStyle, top: '50%', left: -5 }}
+                />
+                <Handle
+                  type="source"
+                  position={Position.Left}
+                  id={getPropertySourceHandleId(property.name, 'left')}
+                  style={{ ...hiddenHandleStyle, top: '50%', left: -5 }}
+                />
+                <Handle
+                  type="target"
+                  position={Position.Right}
+                  id={getPropertyTargetHandleId(property.name, 'right')}
+                  style={{ ...hiddenHandleStyle, top: '50%', right: -5 }}
+                />
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={getPropertySourceHandleId(property.name, 'right')}
+                  style={{ ...hiddenHandleStyle, top: '50%', right: -5 }}
+                />
+
                 <div className="min-w-0 flex flex-1 items-start gap-1.5">
                   {property.isRelation && property.targetDatabaseColor && (
                     <span
