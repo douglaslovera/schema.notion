@@ -1,4 +1,3 @@
-import { CopyJsonButton } from '@/components/share/copy-json-button'
 import { AccountMenu } from '@/components/account/account-menu'
 import { ShareCanvasButton } from '@/components/share/share-canvas-button'
 import { Diagram } from '@/components/reactflow/diagram'
@@ -74,17 +73,12 @@ export default function DiagramPanel({
             </div>
           </div>
 
-          <div className="flex items-start gap-2">
-            <div className="flex flex-col gap-2">
-              <ShareCanvasButton
-                chatId={chatId}
-                disabled={!chatDiagram || isLoading}
-              />
-              <CopyJsonButton
-                schemaJson={chatDiagram}
-                disabled={!chatDiagram || isLoading}
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <ShareCanvasButton
+              chatId={chatId}
+              schemaJson={chatDiagram}
+              disabled={!chatDiagram || isLoading}
+            />
             <AccountMenu user={user} />
           </div>
         </div>

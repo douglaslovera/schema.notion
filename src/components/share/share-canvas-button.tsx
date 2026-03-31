@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { PATHS } from '@/constants/paths'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { enableCanvasSharing } from '@/lib/thread'
-import { Code2, Share2 } from 'lucide-react'
+import { Braces, Code2, Share2 } from 'lucide-react'
 import { useState } from 'react'
 
 type ShareAction = 'share' | 'embed'
@@ -31,9 +31,11 @@ const MODAL_DESCRIPTION =
 
 export function ShareCanvasButton({
   chatId,
+  schemaJson,
   disabled = false,
 }: {
   chatId: string
+  schemaJson: string | null
   disabled?: boolean
 }) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -47,6 +49,23 @@ export function ShareCanvasButton({
     setManualCopyValue(null)
     setPendingAction(action)
     setIsPopoverOpen(false)
+  }
+
+  const handleCopyJson = async () => {
+    if (!schemaJson) return
+
+    setFeedback(null)
+    setManualCopyValue(null)
+
+    const copied = await copyToClipboard(schemaJson)
+
+    if (copied) {
+      setFeedback('JSON copiado.')
+      return
+    }
+
+    setManualCopyValue(schemaJson)
+    setFeedback('No se pudo copiar automáticamente. Copia el texto manualmente.')
   }
 
   const handleCloseModal = () => {
@@ -124,6 +143,17 @@ export function ShareCanvasButton({
             >
               <Code2 className="h-4 w-4" />
               Embed
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-10 w-full justify-start rounded-xl"
+              onClick={handleCopyJson}
+              disabled={!schemaJson}
+            >
+              <Braces className="h-4 w-4" />
+              Copy JSON
             </Button>
           </div>
 
