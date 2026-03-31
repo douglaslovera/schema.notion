@@ -4,6 +4,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { PATHS } from '@/constants/paths'
+import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { enableCanvasSharing } from '@/lib/thread'
 import { Code2, Share2 } from 'lucide-react'
 import { useState } from 'react'
@@ -40,44 +41,6 @@ export function ShareCanvasButton({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [manualCopyValue, setManualCopyValue] = useState<string | null>(null)
-
-  const copyWithExecCommand = (value: string) => {
-    const textarea = document.createElement('textarea')
-    textarea.value = value
-    textarea.setAttribute('readonly', '')
-    textarea.style.position = 'fixed'
-    textarea.style.top = '0'
-    textarea.style.left = '0'
-    textarea.style.opacity = '0'
-
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-
-    try {
-      return document.execCommand('copy')
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  }
-
-  const copyToClipboard = async (value: string) => {
-    try {
-      if (document.hasFocus() && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value)
-        return true
-      }
-    } catch (error) {
-      console.error('Clipboard API copy failed:', error)
-    }
-
-    try {
-      return copyWithExecCommand(value)
-    } catch (error) {
-      console.error('Fallback copy failed:', error)
-      return false
-    }
-  }
 
   const handleOpenConfirmation = (action: ShareAction) => {
     setFeedback(null)
