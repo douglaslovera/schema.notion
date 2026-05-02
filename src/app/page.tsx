@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth'
+import { ArrowDown } from 'lucide-react'
 import Link from 'next/link'
 
 import { LandingNavbar } from '@/components/navigation/landing-navbar'
@@ -14,7 +15,7 @@ export default async function LandingPage() {
       <LandingNavbar user={user} />
 
       <main>
-        <section className="page-shell grid min-h-[calc(100dvh-4rem)] gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.48fr)] lg:items-center">
+        <section className="page-shell relative grid min-h-[calc(100dvh-4rem)] gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.48fr)] lg:items-center">
           <div className="max-w-4xl space-y-7">
             <Badge className="w-fit">Beta privada</Badge>
             <div className="space-y-5">
@@ -44,6 +45,13 @@ export default async function LandingPage() {
               Necesito gestionar leads, oportunidades, tareas y seguimiento por
               etapa para un equipo comercial pequeño.
             </p>
+          </div>
+
+          <div
+            aria-hidden="true"
+            className="absolute bottom-5 left-1/2 flex h-10 w-10 -translate-x-1/2 items-center justify-center text-muted-foreground"
+          >
+            <ArrowDown className="h-4 w-4" />
           </div>
         </section>
 
@@ -130,6 +138,16 @@ export default async function LandingPage() {
           </div>
         </section>
       </main>
+
+      <footer className="page-shell border-t border-border/80 py-6 text-left text-sm text-muted-foreground">
+        Hecho con ☕ por{' '}
+        <Link
+          href="https://doulovera.com"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          Douglas Lovera
+        </Link>
+      </footer>
     </div>
   )
 }
