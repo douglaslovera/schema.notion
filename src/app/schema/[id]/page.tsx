@@ -1,3 +1,4 @@
+import { isUserAllowlisted } from '@/lib/access-allowlist'
 import { getCurrentUser } from '@/lib/auth'
 import { getThread } from '@/lib/thread'
 import { redirect } from 'next/navigation'
@@ -11,6 +12,12 @@ export default async function Schema({ params }: PageProps) {
 
   if (!user) {
     redirect('/sign-in')
+  }
+
+  const isAllowlisted = await isUserAllowlisted(user)
+
+  if (!isAllowlisted) {
+    redirect('/#waitlist')
   }
 
   const thread = await getThread(chatId)

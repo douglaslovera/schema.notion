@@ -1,6 +1,7 @@
 import { AccountMenu } from '@/components/account/account-menu'
 import { ThemeToggleButton } from '@/components/theme/theme-toggle-button'
 import type { Thread } from '@/db/schema'
+import { isUserAllowlisted } from '@/lib/access-allowlist'
 import { getCurrentUser } from '@/lib/auth'
 import { getThreadsByUserId } from '@/lib/thread'
 import type { Message } from '@/types/chat'
@@ -34,6 +35,12 @@ export default async function SchemasList() {
 
   if (!user) {
     redirect('/sign-in')
+  }
+
+  const isAllowlisted = await isUserAllowlisted(user)
+
+  if (!isAllowlisted) {
+    redirect('/#waitlist')
   }
 
   const threads = await getThreadsByUserId(user.id)

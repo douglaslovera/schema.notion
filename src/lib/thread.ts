@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { type Thread, threads } from '@/db/schema'
 import type { Message } from '@/types/chat'
 import { and, eq } from 'drizzle-orm'
-import { getCurrentUser } from './auth'
+import { requireAllowlistedCurrentUser } from './access-allowlist'
 
 export interface ThreadData {
   chatId: string
@@ -127,19 +127,18 @@ export async function getThreadsByUserId(userId: string): Promise<Thread[]> {
 }
 
 export async function deleteThread(chatId: string): Promise<boolean> {
+  const user = await requireAllowlistedCurrentUser()
+
   const [deletedThread] = await db
     .delete(threads)
-    .where(eq(threads.chatId, chatId))
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, user.id)))
     .returning()
 
   return !!deletedThread
 }
 
 export async function enableCanvasSharing(chatId: string): Promise<string> {
-  const user = await getCurrentUser()
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
+  const user = await requireAllowlistedCurrentUser()
 
   const thread = await getThread(chatId)
 
@@ -193,6 +192,12 @@ export async function duplicateThread(
   chatId: string,
   userId: string,
 ): Promise<Thread | null> {
+  const user = await requireAllowlistedCurrentUser()
+
+  if (user.id !== userId) {
+    throw new Error('Cannot duplicate thread for another user')
+  }
+
   const thread = await getThread(chatId)
 
   if (!thread) {
@@ -218,10 +223,7 @@ export async function duplicateThread(
 export async function saveThreadForCurrentUser(
   data: Partial<ThreadData> & { chatId: string },
 ): Promise<Thread> {
-  const user = await getCurrentUser()
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
+  const user = await requireAllowlistedCurrentUser()
 
   const existingThread = await getThread(data.chatId)
 

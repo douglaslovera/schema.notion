@@ -1,5 +1,7 @@
 import type { Message } from '@/types/chat'
+import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   boolean,
   jsonb,
   pgTable,
@@ -8,6 +10,8 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+
+const lower = (column: AnyPgColumn) => sql`lower(${column})`
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -91,9 +95,21 @@ export const authVerification = pgTable('verification', {
   ),
 }))
 
+export const accessAllowlist = pgTable('access_allowlist', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  emailLowerUnique: uniqueIndex('access_allowlist_email_lower_unique').on(
+    lower(table.email),
+  ),
+}))
+
 export type User = typeof users.$inferSelect
 export type InsertUser = typeof users.$inferInsert
 export type Thread = typeof threads.$inferSelect
 export type InsertThread = typeof threads.$inferInsert
 export type AuthUser = typeof authUser.$inferSelect
 export type AuthSession = typeof authSession.$inferSelect
+export type AccessAllowlistEntry = typeof accessAllowlist.$inferSelect

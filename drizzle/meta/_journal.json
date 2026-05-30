@@ -15,6 +15,13 @@
       "when": 1774909359760,
       "tag": "0001_wealthy_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780181211355,
+      "tag": "0002_sticky_clint_barton",
+      "breakpoints": true
     }
   ]
 }
