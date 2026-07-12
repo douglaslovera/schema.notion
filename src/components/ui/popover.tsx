@@ -155,7 +155,7 @@ export function PopoverContent({
       data-state={open ? 'open' : 'closed'}
       style={{ marginTop: sideOffset }}
       className={cn(
-        'absolute top-full z-50 min-w-56 rounded-2xl border border-border/80 bg-card p-1 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)]',
+        'absolute top-full z-[100] min-w-56 rounded-2xl border border-border/80 bg-card p-1 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)]',
         align === 'start' && 'left-0',
         align === 'center' && 'left-1/2 -translate-x-1/2',
         align === 'end' && 'right-0',

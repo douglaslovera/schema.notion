@@ -111,6 +111,21 @@ function getFacingHandleSides(
     : { sourceSide: 'left', targetSide: 'right' }
 }
 
+function getExistingPropertyName(
+  node: AppNode | undefined,
+  propertyName: string | undefined,
+) {
+  if (!node || !propertyName) {
+    return undefined
+  }
+
+  const normalizedPropertyName = propertyName.trim()
+
+  return node.data.properties.find(
+    (property) => property.name.trim() === normalizedPropertyName,
+  )?.name
+}
+
 const getLayoutedElements = (
   nodesToLayout: AppNode[],
   edgesToLayout: AppEdge[],
@@ -349,6 +364,10 @@ export function Diagram({
         sourceNode,
         targetNode,
       )
+      const targetPropertyName = getExistingPropertyName(
+        targetNode,
+        relation.targetPropertyName,
+      )
 
       const label = isBidirectional
         ? `${relation.sourcePropertyName} ↔ ${relation.targetDatabaseName}${relation.pairedPropertyName ? ` (${relation.pairedPropertyName})` : ''}`
@@ -362,18 +381,15 @@ export function Diagram({
           relation.sourcePropertyName,
           sourceSide,
         ),
-        targetHandle: relation.targetPropertyName
-          ? getPropertyTargetHandleId(
-              relation.targetPropertyName,
-              targetSide,
-            )
+        targetHandle: targetPropertyName
+          ? getPropertyTargetHandleId(targetPropertyName, targetSide)
           : getDefaultTargetHandleId(targetSide),
         label,
         type: 'custom',
         data: {
           lineMode: edgeLineMode,
           sourcePropertyName: relation.sourcePropertyName,
-          targetPropertyName: relation.targetPropertyName,
+          targetPropertyName,
         },
         style: {
           stroke: targetColor,
@@ -468,13 +484,18 @@ export function Diagram({
         const nextSourceHandle = edge.data?.sourcePropertyName
           ? getPropertySourceHandleId(edge.data.sourcePropertyName, sourceSide)
           : edge.sourceHandle
-        const nextTargetHandle = edge.data?.targetPropertyName
-          ? getPropertyTargetHandleId(edge.data.targetPropertyName, targetSide)
+        const targetPropertyName = getExistingPropertyName(
+          targetNode,
+          edge.data?.targetPropertyName,
+        )
+        const nextTargetHandle = targetPropertyName
+          ? getPropertyTargetHandleId(targetPropertyName, targetSide)
           : getDefaultTargetHandleId(targetSide)
 
         if (
           edge.sourceHandle === nextSourceHandle &&
-          edge.targetHandle === nextTargetHandle
+          edge.targetHandle === nextTargetHandle &&
+          edge.data?.targetPropertyName === targetPropertyName
         ) {
           return edge
         }
@@ -485,12 +506,17 @@ export function Diagram({
           ...edge,
           sourceHandle: nextSourceHandle,
           targetHandle: nextTargetHandle,
+          data: {
+            ...(edge.data || {}),
+            lineMode: edge.data?.lineMode ?? edgeLineMode,
+            targetPropertyName,
+          },
         }
       })
 
       return changed ? nextEdges : currentEdges
     })
-  }, [nodes, setEdges])
+  }, [nodes, edgeLineMode, setEdges])
 
   useEffect(() => {
     if ((usesStoreData && !isMounted) || nodes.length === 0) {

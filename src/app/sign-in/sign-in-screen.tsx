@@ -3,13 +3,65 @@
 import { authClient } from '@/lib/auth-client'
 import { Database, LogIn } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { type FormEvent, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
+type AuthMode = 'sign-in' | 'sign-up'
 
 export function SignInScreen() {
+  const router = useRouter()
+  const [mode, setMode] = useState<AuthMode>('sign-in')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const isSignUp = mode === 'sign-up'
+
+  const handleEmailAuth = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isSigningIn) return
+
+    setIsSigningIn(true)
+    setErrorMessage(null)
+
+    try {
+      const response = isSignUp
+        ? await authClient.signUp.email({
+            name: name.trim() || email.split('@')[0],
+            email,
+            password,
+            callbackURL: '/schemas',
+          })
+        : await authClient.signIn.email({
+            email,
+            password,
+            callbackURL: '/schemas',
+          })
+
+      if (response.error) {
+        setErrorMessage(
+          isSignUp
+            ? 'No pudimos crear la cuenta. Revisa los datos e inténtalo de nuevo.'
+            : 'Email o contraseña incorrectos.',
+        )
+        setIsSigningIn(false)
+        return
+      }
+
+      router.push('/schemas')
+      router.refresh()
+    } catch (error) {
+      console.error('Failed to authenticate with email and password', error)
+      setErrorMessage('No pudimos iniciar sesión. Inténtalo de nuevo.')
+      setIsSigningIn(false)
+    }
+  }
 
   const handleGoogleSignIn = async () => {
     if (isSigningIn) return
@@ -52,26 +104,117 @@ export function SignInScreen() {
             Entra para continuar con tus esquemas.
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Usa tu cuenta de Google para abrir /schemas y retomar cualquier
+            Usa tu email y contraseña para abrir /schemas y retomar cualquier
             workspace guardado.
           </p>
         </div>
 
-        <div className="mt-8 space-y-3">
+        <form
+          className="mt-8 space-y-4"
+          onSubmit={handleEmailAuth}
+          suppressHydrationWarning
+        >
+          {isSignUp ? (
+            <div className="space-y-1.5">
+              <label htmlFor="name" className="text-sm font-medium">
+                Nombre
+              </label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                disabled={isSigningIn}
+                suppressHydrationWarning
+              />
+            </div>
+          ) : null}
+
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              disabled={isSigningIn}
+              required
+              suppressHydrationWarning
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-sm font-medium">
+              Contraseña
+            </label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={isSigningIn}
+              minLength={8}
+              required
+              suppressHydrationWarning
+            />
+          </div>
+
           <Button
-            type="button"
+            type="submit"
             className="h-11 w-full"
-            onClick={handleGoogleSignIn}
             disabled={isSigningIn}
           >
             <LogIn className="h-4 w-4" />
-            {isSigningIn ? 'Redirigiendo...' : 'Continuar con Google'}
+            {isSigningIn
+              ? 'Procesando...'
+              : isSignUp
+                ? 'Crear cuenta'
+                : 'Iniciar sesión'}
           </Button>
 
           {errorMessage ? (
             <p className="text-sm text-destructive">{errorMessage}</p>
           ) : null}
+
+          <button
+            type="button"
+            className="w-full text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            onClick={() => {
+              setMode(isSignUp ? 'sign-in' : 'sign-up')
+              setErrorMessage(null)
+            }}
+            disabled={isSigningIn}
+          >
+            {isSignUp
+              ? 'Ya tienes cuenta? Inicia sesión'
+              : 'No tienes cuenta? Crea una'}
+          </button>
+        </form>
+
+        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          o
+          <div className="h-px flex-1 bg-border" />
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isSigningIn}
+        >
+          <LogIn className="h-4 w-4" />
+          {isSigningIn ? 'Redirigiendo...' : 'Continuar con Google'}
+        </Button>
       </div>
     </div>
   )

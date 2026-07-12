@@ -44,7 +44,11 @@ export function ChatInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-2"
+      suppressHydrationWarning
+    >
       <div className="rounded-2xl border border-border/80 bg-background p-2">
         <textarea
           ref={textareaRef}
@@ -61,6 +65,7 @@ export function ChatInput() {
           disabled={isLoading}
           required
           spellCheck={false}
+          suppressHydrationWarning
         />
         <div className="mt-2 flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] text-muted-foreground">
