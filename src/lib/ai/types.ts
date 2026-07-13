@@ -1,14 +1,12 @@
 import type { Message } from '@/types/chat'
 
 /**
- * Roles used internally across providers.
- * Each provider maps these to its own format.
+ * Roles used internally by the AI service.
  */
 export type ChatRole = 'user' | 'model'
 
 /**
- * A single message in the provider-agnostic chat history.
- * This is what gets passed between the AI service and providers.
+ * A single message in the application chat history.
  */
 export interface ChatMessage {
   role: ChatRole
@@ -33,11 +31,7 @@ export interface SendMessageResult {
 }
 
 /**
- * The contract every AI provider must implement.
- *
- * Each method maps 1:1 to a capability the app needs.
- * Providers are free to use whatever SDK, API, or local model
- * they want internally -- as long as they return the right shape.
+ * The AI capabilities used by the application.
  */
 export interface AIProvider {
   /** Human-readable name for logging / debugging */
@@ -61,7 +55,7 @@ export interface AIProvider {
 
   /**
    * Convert the app's internal Message[] format into the
-   * provider-agnostic ChatMessage[] format for history replay.
+   * ChatMessage[] format used for history replay.
    */
   normalizeChat(messages: Message[]): Promise<ChatMessage[]>
 

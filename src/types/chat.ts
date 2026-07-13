@@ -5,13 +5,6 @@ export interface MessageRole {
   assistant: 'model'
 }
 
-export interface GeminiMessage {
-  role: Roles
-  parts: {
-    text: string
-  }[]
-}
-
 export interface Message {
   id: string
   timestamp: number

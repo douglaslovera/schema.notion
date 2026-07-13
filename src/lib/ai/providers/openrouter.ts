@@ -1,6 +1,7 @@
-import { createGroq } from '@ai-sdk/groq'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { generateObject, generateText } from 'ai'
 import { z } from 'zod'
+import { AI_MODELS } from '@/lib/ai/models'
 import {
   generateNotionSchemaPrompt,
   validateUserIntentPrompt,
@@ -13,21 +14,19 @@ import type {
   ValidationResult,
 } from '../types'
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
-
 const validationSchema = z.object({
   isValid: z.boolean(),
   message: z.string(),
 })
 
-function toGroqRole(role: 'user' | 'model'): 'user' | 'assistant' {
+function toOpenRouterRole(role: 'user' | 'model'): 'user' | 'assistant' {
   return role === 'model' ? 'assistant' : 'user'
 }
 
-function historyToGroqMessages(history: ChatMessage[]) {
-  return history.map((msg) => ({
-    role: toGroqRole(msg.role),
-    content: msg.parts.map((part) => part.text).join('\n'),
+function historyToOpenRouterMessages(history: ChatMessage[]) {
+  return history.map((message) => ({
+    role: toOpenRouterRole(message.role),
+    content: message.parts.map((part) => part.text).join('\n'),
   }))
 }
 
@@ -37,40 +36,29 @@ function stripMarkdownCodeFence(text: string) {
   return match?.[1]?.trim() || trimmed
 }
 
-export function createGroqProvider(): AIProvider {
-  const apiKey = process.env.GROQ_API_KEY
+export function createOpenRouterProvider(): AIProvider {
+  const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    throw new Error('GROQ_API_KEY environment variable is not set')
+    throw new Error('OPENROUTER_API_KEY environment variable is not set')
   }
 
-  const groqProvider = createGroq({
-    apiKey,
-    baseURL: process.env.GROQ_BASE_URL,
-  })
-
-  const mainModel = process.env.GROQ_MAIN_MODEL || DEFAULT_MODEL
-  const miscModel = process.env.GROQ_MISC_MODEL || mainModel
+  const openrouter = createOpenRouter({ apiKey })
 
   return {
-    name: 'groq',
+    name: 'openrouter',
 
     async validateUserIntent(userMessage: string): Promise<ValidationResult> {
       try {
         const { object } = await generateObject({
-          model: groqProvider(miscModel),
+          model: openrouter(AI_MODELS.validateUserIntent),
           system: validateUserIntentPrompt,
           prompt: userMessage,
           schema: validationSchema,
-          providerOptions: {
-            groq: {
-              structuredOutputs: false,
-            },
-          },
         })
 
         return object
       } catch (error) {
-        console.error('Groq validation error:', error)
+        console.error('OpenRouter validation error:', error)
         return {
           isValid: false,
           message: 'Error al procesar la validación de la solicitud.',
@@ -83,12 +71,12 @@ export function createGroqProvider(): AIProvider {
       userMessage: string,
     ): Promise<SendMessageResult> {
       const messages = [
-        ...historyToGroqMessages(history),
+        ...historyToOpenRouterMessages(history),
         { role: 'user' as const, content: userMessage },
       ]
 
       const { text } = await generateText({
-        model: groqProvider(mainModel),
+        model: openrouter(AI_MODELS.generateNotionSchema),
         system: generateNotionSchemaPrompt,
         messages,
       })
@@ -104,9 +92,9 @@ export function createGroqProvider(): AIProvider {
     },
 
     async normalizeChat(messages: Message[]): Promise<ChatMessage[]> {
-      return messages.map((msg) => ({
-        role: msg.role,
-        parts: [{ text: msg.diagram || msg.message }],
+      return messages.map((message) => ({
+        role: message.role,
+        parts: [{ text: message.diagram || message.message }],
       }))
     },
   }

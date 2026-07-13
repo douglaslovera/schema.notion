@@ -1,23 +1,13 @@
 'use server'
 
 import type { Message } from '@/types/chat'
-import { createGeminiProvider } from './providers/gemini'
-import { createGroqProvider } from './providers/groq'
-import { createOllamaProvider } from './providers/ollama'
+import { createOpenRouterProvider } from './providers/openrouter'
 import type {
   AIProvider,
   ChatMessage,
   SendMessageResult,
   ValidationResult,
 } from './types'
-
-/**
- * Supported provider identifiers.
- * Set via AI_PROVIDER env var.
- */
-type ProviderName = 'gemini' | 'groq' | 'ollama'
-
-const DEFAULT_PROVIDER: ProviderName = 'groq'
 
 /**
  * Singleton cache so we don't re-create the provider on every call.
@@ -27,24 +17,7 @@ let cachedProvider: AIProvider | null = null
 function getProvider() {
   if (cachedProvider) return cachedProvider
 
-  const providerName =
-    (process.env.AI_PROVIDER as ProviderName) || DEFAULT_PROVIDER
-
-  switch (providerName) {
-    case 'gemini':
-      cachedProvider = createGeminiProvider()
-      break
-    case 'groq':
-      cachedProvider = createGroqProvider()
-      break
-    case 'ollama':
-      cachedProvider = createOllamaProvider()
-      break
-    default:
-      throw new Error(
-        `Unknown AI provider: "${providerName}". Supported: gemini, groq, ollama`,
-      )
-  }
+  cachedProvider = createOpenRouterProvider()
 
   console.log(`[AI] Using provider: ${cachedProvider.name}`)
   return cachedProvider
@@ -52,7 +25,7 @@ function getProvider() {
 
 // ─── Public server actions ────────────────────────────────────────
 // These are the functions the rest of the app should import.
-// They delegate to whichever provider is configured.
+// They delegate to the OpenRouter provider.
 
 export async function validateUserIntent(
   userMessage: string,

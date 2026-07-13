@@ -13,7 +13,7 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
 - Publish a read-only canvas through a public link or iframe embed.
 - Sign in with email and password or Google through Better Auth.
 - Restrict application access to emails in a database-backed allowlist.
-- Choose between Groq, Gemini, and Ollama as the AI provider.
+- Generate schemas through OpenRouter, with model choices managed by process.
 
 ## Tech stack
 
@@ -23,7 +23,7 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
 - React Flow and Dagre
 - Better Auth
 - PostgreSQL, Drizzle ORM, and Drizzle Kit
-- Vercel AI SDK with Groq, plus Gemini and Ollama adapters
+- Vercel AI SDK with OpenRouter
 - Zustand
 - Biome
 - pnpm
@@ -33,7 +33,7 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
 - Node.js 20 or newer
 - pnpm
 - PostgreSQL 16, or Docker for the included local database
-- Credentials for the selected AI provider
+- An OpenRouter API key
 - Google OAuth credentials (the current auth configuration requires them at startup)
 
 ## Local setup
@@ -97,13 +97,9 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
 
 ### AI provider
 
-`AI_PROVIDER` accepts `groq`, `gemini`, or `ollama`. If omitted, the application uses Groq.
+OpenRouter is the only supported AI provider. Set `OPENROUTER_API_KEY` to an active OpenRouter API key.
 
-| Provider | Variables |
-| --- | --- |
-| Groq | `GROQ_API_KEY` is required. `GROQ_BASE_URL`, `GROQ_MAIN_MODEL`, and `GROQ_MISC_MODEL` are optional. The default model is `llama-3.3-70b-versatile`. |
-| Gemini | Set `AI_PROVIDER=gemini` and provide `GEMINI_API_KEY`. The current adapter uses `gemini-flash-latest`. |
-| Ollama | Set `AI_PROVIDER=ollama`. `OLLAMA_BASE_URL` defaults to `http://localhost:11434`, and `OLLAMA_MODEL` defaults to `llama3.1`. |
+Model selection is centralized in `src/lib/ai/models.ts`. Each application process has its own entry so models can be assigned independently as those requirements are defined.
 
 ## Access allowlist
 
@@ -153,7 +149,7 @@ Public sharing exposes only the generated canvas. It does not expose the convers
 src/app/                 Next.js routes and application screens
 src/components/          Chat, diagram, navigation, sharing, and UI components
 src/db/                  Drizzle client and PostgreSQL schema
-src/lib/ai/              AI provider interface and provider adapters
+src/lib/ai/              OpenRouter integration and model configuration
 src/lib/prompts/         Intent validation and Notion schema prompts
 src/lib/thread.ts        Thread persistence, ownership, and sharing actions
 src/stores/              Client-side chat and UI state
