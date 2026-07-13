@@ -18,6 +18,7 @@ import {
   Database,
   Eye,
   House,
+  LoaderCircle,
   Maximize2,
   MessageSquareText,
   MessagesSquare,
@@ -64,6 +65,8 @@ export default function PageContent({
     chatDiagram,
     isLoading,
     handleSendMessage,
+    pendingNavigationChatId: pendingChatId,
+    setPendingNavigationChatId: setPendingChatId,
   } = useChatStore()
   const processedStarterForChatIdRef = useRef<string | null>(null)
   const conversationScrollRef = useRef<HTMLDivElement>(null)
@@ -72,19 +75,31 @@ export default function PageContent({
     parsedGraph.workspaceName && parsedGraph.workspaceName !== 'Workspace'
       ? parsedGraph.workspaceName
       : 'Nuevo workspace'
+  const displayedChatTitle =
+    threads.find(
+      (item) => item.chatId === (pendingChatId || activeChatId),
+    )?.title || workspaceTitle
 
   useEffect(() => {
     setHasMounted(true)
   }, [])
 
   useEffect(() => {
+    if (pendingChatId === activeChatId && storeChatId === activeChatId) {
+      setPendingChatId(null)
+    }
+  }, [activeChatId, pendingChatId, setPendingChatId, storeChatId])
+
+  useEffect(() => {
+    if (pendingChatId && pendingChatId !== activeChatId) return
+
     if (
       activeChatId !== storeChatId ||
       useChatStore.getState().chatHistory === null
     ) {
       loadChatThread(activeChatId, thread)
     }
-  }, [activeChatId, loadChatThread, storeChatId, thread])
+  }, [activeChatId, loadChatThread, pendingChatId, storeChatId, thread])
 
   useEffect(() => {
     if (processedStarterForChatIdRef.current === activeChatId) return
@@ -112,7 +127,7 @@ export default function PageContent({
   return (
     <div
       className={cn(
-        'grid h-[100dvh] overflow-hidden bg-background text-foreground lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out',
+        'grid h-[100dvh] overflow-hidden bg-[color:var(--surface-muted)] text-foreground lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out',
         chatListCollapsed
           ? 'lg:grid-cols-[0px_minmax(0,1fr)]'
           : 'lg:grid-cols-[300px_minmax(0,1fr)]',
@@ -120,7 +135,7 @@ export default function PageContent({
     >
       <aside
         className={cn(
-          'min-h-0 bg-[color:var(--surface-muted)] p-2 text-sidebar-foreground',
+          'min-h-0 bg-transparent p-2 text-sidebar-foreground',
           leftSidebarOpen
             ? 'fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col'
             : 'hidden',
@@ -197,13 +212,18 @@ export default function PageContent({
           <nav className="min-h-0 flex-1 overflow-auto p-2">
           <div className="space-y-1">
             {threads.map((item) => {
-              const isActive = item.chatId === activeChatId
+              const isActive = item.chatId === (pendingChatId || activeChatId)
 
               return (
                 <Link
                   key={item.chatId}
                   href={`${PATHS.CHAT}/${item.chatId}`}
                   title={item.title}
+                  onNavigate={() => {
+                    if (item.chatId !== activeChatId) {
+                      setPendingChatId(item.chatId)
+                    }
+                  }}
                   className={`group block rounded-lg border px-2.5 py-2 transition-colors ${
                     isActive
                       ? 'border-sidebar-border bg-background text-foreground shadow-[0_1px_0_0_var(--line-subtle)]'
@@ -240,15 +260,14 @@ export default function PageContent({
         </div>
       </aside>
 
-      <main className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-[color:var(--surface)]">
-        <header className="relative z-40 border-b border-border/70 bg-background/95 px-3 py-3 backdrop-blur sm:px-5">
+      <main className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-transparent">
+        <header className="relative z-40 bg-transparent px-3 py-2 sm:px-4">
           <div
             className={cn(
-              'mx-auto flex items-center justify-between gap-3',
-              diagramOpen ? 'max-w-none' : 'max-w-4xl',
+              'flex items-center justify-between gap-3',
             )}
           >
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex h-14 min-w-0 items-center gap-2 rounded-xl border border-border/80 bg-card/90 px-2.5 shadow-sm backdrop-blur">
               <Button
                 aria-label={
                   chatListCollapsed
@@ -261,7 +280,7 @@ export default function PageContent({
                 className={cn(
                   'shrink-0',
                   chatListCollapsed &&
-                    'lg:absolute lg:left-5 lg:animate-in lg:fade-in lg:zoom-in-95 lg:duration-200',
+                    'lg:animate-in lg:fade-in lg:zoom-in-95 lg:duration-200',
                   !chatListCollapsed && 'lg:hidden',
                 )}
                 onClick={() => {
@@ -292,12 +311,12 @@ export default function PageContent({
                   <span>Workspace</span>
                 </div>
                 <h1 className="truncate text-sm font-medium tracking-tight sm:text-base">
-                  {workspaceTitle}
+                  {displayedChatTitle}
                 </h1>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex h-14 shrink-0 items-center gap-1.5 rounded-xl border border-border/80 bg-card/90 px-1.5 shadow-sm backdrop-blur">
               {hasMounted ? (
                 <>
                   <ShareCanvasButton
@@ -339,12 +358,23 @@ export default function PageContent({
               <div
                 ref={conversationScrollRef}
                 className="mx-auto h-full max-w-4xl overflow-auto px-3 py-5 sm:px-5"
+                aria-busy={pendingChatId !== null}
               >
-                <ConversationView />
+                {pendingChatId ? (
+                  <div className="flex h-full min-h-52 items-end justify-center pb-2">
+                    <LoaderCircle
+                      className="size-6 animate-spin text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Abriendo chat...</span>
+                  </div>
+                ) : (
+                  <ConversationView />
+                )}
               </div>
             </div>
 
-            <footer className="relative z-40 border-t border-border/70 bg-background px-3 py-3 sm:px-5">
+            <footer className="relative z-40 bg-transparent px-3 pb-3 pt-2 sm:px-5 sm:pb-4">
               <div className="mx-auto max-w-4xl">
                 <ChatInput />
               </div>

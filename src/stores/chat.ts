@@ -17,6 +17,7 @@ interface ChatStore {
   chatHistory: Message[] | null
   chatId: string | null
   chatDiagram: string | null
+  pendingNavigationChatId: string | null
   diagramNodePositionsByChatId: Record<
     string,
     Record<string, { x: number; y: number }>
@@ -26,6 +27,7 @@ interface ChatStore {
   addMessageToChat: (role: Roles, text: string, diagram?: string) => void
   handleSendMessage: (messageText: string, chatId: string) => Promise<void>
   loadChatThread: (chatId: string, thread: Thread | null) => Promise<void>
+  setPendingNavigationChatId: (chatId: string | null) => void
   setDiagramNodePositions: (
     chatId: string,
     positions: Record<string, { x: number; y: number }>,
@@ -45,8 +47,13 @@ export const useChatStore = create<ChatStore>()(
       chatHistory: null,
       chatId: null,
       chatDiagram: null,
+      pendingNavigationChatId: null,
       diagramNodePositionsByChatId: {},
       isLoading: false,
+
+      setPendingNavigationChatId: (chatId) => {
+        set({ pendingNavigationChatId: chatId })
+      },
 
       addMessageToChat: (role: Roles, text: string, diagram?: string) => {
         const { chatHistory } = get()
@@ -231,6 +238,14 @@ export const useChatStore = create<ChatStore>()(
     {
       name: 'chat-storage',
       storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        conversations: state.conversations,
+        chatHistory: state.chatHistory,
+        chatId: state.chatId,
+        chatDiagram: state.chatDiagram,
+        diagramNodePositionsByChatId: state.diagramNodePositionsByChatId,
+        isLoading: state.isLoading,
+      }),
     },
   ),
 )

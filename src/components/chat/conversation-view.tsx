@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
 import { useChatStore } from '@/stores/chat'
 import { Sparkles } from 'lucide-react'
 
@@ -27,24 +26,32 @@ export function ConversationView() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {chatHistory?.map((message) => {
         const isUser = message.role === 'user'
 
         return (
           <div
             key={message.id}
-            className={`rounded-2xl border p-3 ${
-              isUser
-                ? 'border-border/80 bg-background'
-                : 'border-border/70 bg-[color:var(--surface)]'
-            }`}
+            className="group relative pb-5"
           >
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <Badge variant={isUser ? 'outline' : 'default'}>
-                {isUser ? 'Tú' : 'IA'}
-              </Badge>
-              <span className="text-[11px] text-muted-foreground">
+            <div
+              className={`rounded-2xl border p-3 ${
+                isUser
+                  ? 'border-border/80 bg-[color:var(--surface-strong)] text-foreground'
+                  : 'border-border/80 bg-card text-card-foreground'
+              }`}
+            >
+              <p className="whitespace-pre-line text-sm leading-6 text-foreground">
+                {message.message}
+              </p>
+            </div>
+
+            <div className="pointer-events-none absolute bottom-0 right-2 flex h-5 items-center opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:opacity-100 motion-safe:translate-y-0.5">
+              <time
+                dateTime={new Date(message.timestamp).toISOString()}
+                className="text-[10px] tabular-nums text-muted-foreground"
+              >
                 {new Date(message.timestamp).toLocaleString('es-ES', {
                   year: 'numeric',
                   month: '2-digit',
@@ -52,11 +59,8 @@ export function ConversationView() {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
-              </span>
+              </time>
             </div>
-            <p className="whitespace-pre-line text-sm leading-6 text-foreground">
-              {message.message}
-            </p>
           </div>
         )
       })}
