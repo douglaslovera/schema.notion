@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChevronRight, LogIn, MoonStar, Settings, UserCircle2, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 type AccountMenuUser = {
   id: string
@@ -26,8 +27,13 @@ export function AccountMenu({
   className,
 }: AccountMenuProps) {
   const { isDarkMode, setDarkMode } = useConfigStore()
+  const [hasMounted, setHasMounted] = useState(false)
   const email = user?.email ?? 'Invitado'
   const initial = (user?.email?.trim()?.[0] || 'G').toUpperCase()
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   return (
     <Popover>
@@ -88,7 +94,7 @@ export function AccountMenu({
             <span>Cambiar tema</span>
           </div>
           <Switch
-            checked={isDarkMode}
+            checked={hasMounted && isDarkMode}
             onCheckedChange={setDarkMode}
             aria-label="Cambiar tema"
           />

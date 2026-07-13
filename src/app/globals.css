@@ -186,4 +186,34 @@
     font-family: var(--font-editorial-serif), serif;
     letter-spacing: -0.02em;
   }
+
+  .landing-title {
+    text-wrap: balance;
+  }
+
+  .landing-glow {
+    position: absolute;
+    top: -16rem;
+    left: 50%;
+    width: min(72rem, 110vw);
+    height: 40rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--foreground) 7%, transparent) 0%,
+      transparent 68%
+    );
+    pointer-events: none;
+  }
+
+  .app-preview-shell {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 1.5rem;
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    box-shadow:
+      0 1px 0 color-mix(in oklab, var(--foreground) 5%, transparent),
+      0 24px 70px color-mix(in oklab, var(--foreground) 8%, transparent);
+  }
 }

@@ -15,16 +15,18 @@ import { cn } from '@/lib/utils'
 import { useChatStore } from '@/stores/chat'
 import { ReactFlowProvider } from '@xyflow/react'
 import {
-  ArrowUpRight,
   Database,
   Eye,
+  House,
   Maximize2,
   MessageSquareText,
+  MessagesSquare,
   Minimize2,
   Network,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Settings,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -110,58 +112,89 @@ export default function PageContent({
   return (
     <div
       className={cn(
-        'grid h-[100dvh] overflow-hidden bg-background text-foreground',
+        'grid h-[100dvh] overflow-hidden bg-background text-foreground lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out',
         chatListCollapsed
-          ? 'lg:grid-cols-[minmax(0,1fr)]'
-          : 'lg:grid-cols-[260px_minmax(0,1fr)]',
+          ? 'lg:grid-cols-[0px_minmax(0,1fr)]'
+          : 'lg:grid-cols-[300px_minmax(0,1fr)]',
       )}
     >
       <aside
         className={cn(
-          'min-h-0 border-r border-border/70 bg-sidebar text-sidebar-foreground',
+          'min-h-0 bg-[color:var(--surface-muted)] p-2 text-sidebar-foreground',
           leftSidebarOpen
             ? 'fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col'
             : 'hidden',
+          'lg:static lg:z-auto lg:flex lg:h-auto lg:w-auto lg:flex-col lg:transition-[opacity,transform] lg:duration-200 lg:ease-out',
           chatListCollapsed
-            ? 'lg:hidden'
-            : 'lg:static lg:z-auto lg:flex lg:h-auto lg:w-auto lg:flex-col',
+            ? 'lg:pointer-events-none lg:-translate-x-3 lg:opacity-0'
+            : 'lg:translate-x-0 lg:opacity-100',
         )}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-sidebar-border/90 px-4 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border bg-background">
-              <Database className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 leading-tight">
-              <p className="truncate text-sm font-medium tracking-tight">
-                schema.notion
-              </p>
-              <p className="text-[11px] text-muted-foreground">Todos los chats</p>
-            </div>
-          </Link>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-sidebar-border/90 bg-sidebar shadow-[0_18px_50px_color-mix(in_oklab,var(--foreground)_8%,transparent)] lg:rounded-2xl">
+          <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background">
+                <Database className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-sm font-semibold tracking-tight">
+                  schema.notion
+                </p>
+                <p className="text-[11px] text-muted-foreground">Workspace</p>
+              </div>
+            </Link>
 
-          <Button
-            aria-label="Cerrar chats"
-            size="icon"
-            type="button"
-            variant="ghost"
-            className="lg:hidden"
-            onClick={() => setLeftSidebarOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+            <Button
+              aria-label={
+                leftSidebarOpen ? 'Cerrar chats' : 'Colapsar lista de chats'
+              }
+              size="icon"
+              type="button"
+              variant="ghost"
+              className="size-8 rounded-lg"
+              onClick={() => {
+                if (window.matchMedia('(min-width: 1024px)').matches) {
+                  setChatListCollapsed(true)
+                  return
+                }
 
-        <div className="border-b border-sidebar-border/90 p-3">
+                setLeftSidebarOpen(false)
+              }}
+            >
+              <PanelLeftClose className="hidden h-4 w-4 lg:block" />
+              <X className="h-4 w-4 lg:hidden" />
+            </Button>
+          </div>
+
+          <nav className="px-2.5 pb-3">
+          <div className="space-y-1">
+            <Link
+              href="/"
+              className="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+            >
+              <House className="size-4" />
+              Inicio
+            </Link>
+            <Link
+              href={PATHS.SCHEMAS}
+              className="flex h-9 items-center gap-3 rounded-lg bg-sidebar-accent px-3 text-sm font-medium text-foreground"
+            >
+              <MessagesSquare className="size-4" />
+              Chats
+            </Link>
+          </div>
+          </nav>
+
+          <div className="border-y border-sidebar-border/70 p-3">
           <Button asChild className="w-full justify-start rounded-lg" size="sm">
             <Link href={PATHS.CHAT}>
               <Plus className="h-4 w-4" />
               Nuevo chat
             </Link>
           </Button>
-        </div>
+          </div>
 
-        <nav className="min-h-0 flex-1 overflow-auto p-2">
+          <nav className="min-h-0 flex-1 overflow-auto p-2">
           <div className="space-y-1">
             {threads.map((item) => {
               const isActive = item.chatId === activeChatId
@@ -170,29 +203,41 @@ export default function PageContent({
                 <Link
                   key={item.chatId}
                   href={`${PATHS.CHAT}/${item.chatId}`}
-                  className={`group block rounded-lg border px-3 py-2.5 transition-colors ${
+                  title={item.title}
+                  className={`group block rounded-lg border px-2.5 py-2 transition-colors ${
                     isActive
                       ? 'border-sidebar-border bg-background text-foreground shadow-[0_1px_0_0_var(--line-subtle)]'
                       : 'border-transparent hover:border-sidebar-border hover:bg-sidebar-accent'
                   }`}
                 >
-                  <div className="flex items-start gap-2">
-                    <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium tracking-tight">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {item.updatedAtLabel}
-                      </p>
-                    </div>
-                    <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="flex items-center gap-2">
+                    <MessageSquareText className="size-3.5 shrink-0 text-muted-foreground" />
+                    <p className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight">
+                      {item.title}
+                    </p>
+                    <time
+                      dateTime={item.updatedAt}
+                      className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
+                    >
+                      {item.updatedAtLabel}
+                    </time>
                   </div>
                 </Link>
               )
             })}
           </div>
-        </nav>
+          </nav>
+
+          <div className="border-t border-sidebar-border/70 p-2.5">
+          <button
+            type="button"
+            className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+          >
+            <Settings className="size-4" />
+            Configuración
+          </button>
+          </div>
+        </div>
       </aside>
 
       <main className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-[color:var(--surface)]">
@@ -213,7 +258,12 @@ export default function PageContent({
                 size="icon"
                 type="button"
                 variant="outline"
-                className="shrink-0"
+                className={cn(
+                  'shrink-0',
+                  chatListCollapsed &&
+                    'lg:absolute lg:left-5 lg:animate-in lg:fade-in lg:zoom-in-95 lg:duration-200',
+                  !chatListCollapsed && 'lg:hidden',
+                )}
                 onClick={() => {
                   if (window.matchMedia('(min-width: 1024px)').matches) {
                     setChatListCollapsed((current) => !current)

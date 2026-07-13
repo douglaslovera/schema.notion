@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { useConfigStore } from '@/stores/config'
 import { Moon, Sun } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 type ThemeToggleButtonProps = {
   compact?: boolean
@@ -14,6 +15,12 @@ export function ThemeToggleButton({
   className,
 }: ThemeToggleButtonProps) {
   const { isDarkMode, setDarkMode } = useConfigStore()
+  const [hasMounted, setHasMounted] = useState(false)
+  const displayedDarkMode = hasMounted && isDarkMode
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   return (
     <Button
@@ -21,16 +28,16 @@ export function ThemeToggleButton({
       variant="ghost"
       size={compact ? 'icon' : 'sm'}
       onClick={() => setDarkMode(!isDarkMode)}
-      aria-label={isDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-      title={isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'}
+      aria-label={displayedDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+      title={displayedDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'}
       className={className}
     >
-      {isDarkMode ? (
+      {displayedDarkMode ? (
         <Sun className="h-4 w-4" />
       ) : (
         <Moon className="h-4 w-4" />
       )}
-      {!compact && <span>{isDarkMode ? 'Claro' : 'Oscuro'}</span>}
+      {!compact && <span>{displayedDarkMode ? 'Claro' : 'Oscuro'}</span>}
     </Button>
   )
 }

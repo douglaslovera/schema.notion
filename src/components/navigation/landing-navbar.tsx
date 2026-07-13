@@ -1,4 +1,8 @@
 import { AccountMenu } from '@/components/account/account-menu'
+import { ThemeToggleButton } from '@/components/theme/theme-toggle-button'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Database } from 'lucide-react'
 import Link from 'next/link'
 
 type LandingNavbarProps = {
@@ -7,13 +11,42 @@ type LandingNavbarProps = {
 
 export function LandingNavbar({ user }: LandingNavbarProps) {
   return (
-    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/85 backdrop-blur-xl">
       <div className="page-shell flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="text-sm font-medium tracking-tight">
-          schema.notion
-        </Link>
+        <div className="flex items-center gap-8">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-semibold tracking-[-0.02em]"
+          >
+            <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+              <Database className="size-4" strokeWidth={2.25} />
+            </span>
+            schema.notion
+          </Link>
 
-        <AccountMenu user={user} />
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+            <a href="#how-it-works" className="transition-colors hover:text-foreground">
+              Cómo funciona
+            </a>
+            <a href="#preview" className="transition-colors hover:text-foreground">
+              Producto
+            </a>
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <ThemeToggleButton compact className="rounded-full" />
+          <Link
+            href={user ? '/schemas' : '/sign-in'}
+            className={cn(
+              buttonVariants({ size: 'sm' }),
+              'hidden rounded-full px-4 sm:inline-flex',
+            )}
+          >
+            {user ? 'Abrir la app' : 'Iniciar sesión'}
+          </Link>
+          <AccountMenu user={user} className="sm:hidden" />
+        </div>
       </div>
     </header>
   )

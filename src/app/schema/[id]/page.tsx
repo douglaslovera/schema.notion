@@ -9,6 +9,35 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = { params: Promise<{ id: string }> }
 
+function getRelativeThreadDate(date: Date) {
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - date.getTime()) / 1000),
+  )
+
+  if (elapsedSeconds < 60) return 'ahora'
+
+  const relativeTime = new Intl.RelativeTimeFormat('es', {
+    numeric: 'always',
+    style: 'narrow',
+  })
+  const intervals: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['year', 31_536_000],
+    ['month', 2_592_000],
+    ['week', 604_800],
+    ['day', 86_400],
+    ['hour', 3_600],
+    ['minute', 60],
+  ]
+  const [unit, secondsPerUnit] =
+    intervals.find(([, seconds]) => elapsedSeconds >= seconds) ??
+    intervals[intervals.length - 1]
+
+  return relativeTime
+    .format(-Math.floor(elapsedSeconds / secondsPerUnit), unit)
+    .replace(/^hace\s+/, '')
+}
+
 function getThreadTitle(thread: Awaited<ReturnType<typeof getThread>>) {
   const firstUserMessage = (thread?.conversation as Message[] | undefined)?.find(
     (message) => message.role === 'user' && message.message.trim(),
@@ -53,12 +82,7 @@ export default async function Schema({ params }: PageProps) {
       chatId: item.chatId,
       title: getThreadTitle(item),
       updatedAt: item.updatedAt.toISOString(),
-      updatedAtLabel: item.updatedAt.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'America/Lima',
-      }),
+      updatedAtLabel: getRelativeThreadDate(item.updatedAt),
     }))
 
   return (
