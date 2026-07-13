@@ -3,6 +3,7 @@
 import { AccountMenu } from '@/components/account/account-menu'
 import { ChatInput } from '@/components/chat/chat-input'
 import { ConversationView } from '@/components/chat/conversation-view'
+import { SharedChatsModal } from '@/components/chat/shared-chats-modal'
 import { Diagram } from '@/components/reactflow/diagram'
 import { ShareCanvasButton } from '@/components/share/share-canvas-button'
 import { Button } from '@/components/ui/button'
@@ -23,11 +24,9 @@ import { ReactFlowProvider } from '@xyflow/react'
 import {
   Database,
   Eye,
-  House,
   LoaderCircle,
   Maximize2,
   MessageSquareText,
-  MessagesSquare,
   Minimize2,
   Network,
   PanelLeftClose,
@@ -45,11 +44,13 @@ type SidebarThread = {
   updatedAt: string
   updatedAtLabel: string
   groupLabel: string
+  isCanvasShared: boolean
+  shareToken: string | null
 }
 
 type PageContentProps = {
   activeChatId: string
-  thread: Thread
+  thread: Thread | null
   threads: SidebarThread[]
   user: User
 }
@@ -405,33 +406,18 @@ export default function PageContent({
             </Button>
           </div>
 
-          <nav className="px-2.5 pb-3">
+          <nav className="border-b border-sidebar-border/70 px-2.5 pb-3">
           <div className="space-y-1">
-            <Link
-              href="/"
-              className="flex h-9 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
-            >
-              <House className="size-4" />
-              Inicio
-            </Link>
-            <Link
-              href={PATHS.SCHEMAS}
-              className="flex h-9 items-center gap-3 rounded-lg bg-sidebar-accent px-3 text-sm font-medium text-foreground"
-            >
-              <MessagesSquare className="size-4" />
-              Chats
-            </Link>
+            <SharedChatsModal chats={threads} />
+
+            <Button asChild className="w-full justify-start rounded-lg" size="sm">
+              <Link href={PATHS.NEW_CHAT}>
+                <Plus className="h-4 w-4" />
+                Nuevo chat
+              </Link>
+            </Button>
           </div>
           </nav>
-
-          <div className="border-y border-sidebar-border/70 p-3">
-          <Button asChild className="w-full justify-start rounded-lg" size="sm">
-            <Link href={PATHS.CHAT}>
-              <Plus className="h-4 w-4" />
-              Nuevo chat
-            </Link>
-          </Button>
-          </div>
 
           <nav className="min-h-0 flex-1 overflow-auto px-2 pb-2 pt-3">
           <div>
@@ -548,7 +534,7 @@ export default function PageContent({
                 )}
               >
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                  <Link href={PATHS.SCHEMAS} className="hover:text-foreground">
+                  <Link href={PATHS.NEW_CHAT} className="hover:text-foreground">
                     Chats
                   </Link>
                   <span aria-hidden="true">/</span>

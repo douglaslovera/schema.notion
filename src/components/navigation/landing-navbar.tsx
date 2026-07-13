@@ -37,7 +37,7 @@ export function LandingNavbar({ user }: LandingNavbarProps) {
         <div className="flex items-center gap-1.5">
           <ThemeToggleButton compact className="rounded-full" />
           <Link
-            href={user ? '/schemas' : '/sign-in'}
+            href={user ? '/schema/new' : '/sign-in'}
             className={cn(
               buttonVariants({ size: 'sm' }),
               'hidden rounded-full px-4 sm:inline-flex',

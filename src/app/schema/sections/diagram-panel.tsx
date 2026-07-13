@@ -61,7 +61,7 @@ export default function DiagramPanel({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Link href={PATHS.SCHEMAS} className="hover:text-foreground">
+                <Link href={PATHS.NEW_CHAT} className="hover:text-foreground">
                   Chats
                 </Link>
                 <ChevronRight className="h-3.5 w-3.5" />

@@ -36,7 +36,7 @@ export default async function LandingPage() {
                 className="h-12 rounded-full px-6"
               />
               <Link
-                href={user ? '/schemas' : '/sign-in'}
+                href={user ? '/schema/new' : '/sign-in'}
                 className={cn(
                   buttonVariants({ variant: 'outline', size: 'lg' }),
                   'h-12 rounded-full px-6',

@@ -13,7 +13,7 @@ export default async function SignInPage() {
       redirect('/#waitlist')
     }
 
-    redirect('/schemas')
+    redirect('/schema/new')
   }
 
   return <SignInScreen />

@@ -154,7 +154,7 @@ export default function Poc2ChatLayout({
 
         <div className="border-b border-sidebar-border/90 p-3">
           <Button asChild className="w-full justify-start rounded-lg" size="sm">
-            <Link href={PATHS.CHAT}>
+            <Link href={PATHS.NEW_CHAT}>
               <Plus className="h-4 w-4" />
               Nuevo chat
             </Link>
@@ -239,7 +239,7 @@ export default function Poc2ChatLayout({
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Link href={PATHS.SCHEMAS} className="hover:text-foreground">
+                  <Link href={PATHS.NEW_CHAT} className="hover:text-foreground">
                     Chats
                   </Link>
                   <span>/</span>

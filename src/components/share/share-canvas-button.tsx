@@ -7,6 +7,7 @@ import { PATHS } from '@/constants/paths'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 import { enableCanvasSharing } from '@/lib/thread'
 import { Braces, Code2, Share2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 type ShareAction = 'share' | 'embed'
@@ -38,6 +39,7 @@ export function ShareCanvasButton({
   schemaJson: string | null
   disabled?: boolean
 }) {
+  const router = useRouter()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<ShareAction | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -80,6 +82,7 @@ export function ShareCanvasButton({
 
     try {
       const shareToken = await enableCanvasSharing(chatId)
+      router.refresh()
       const origin = window.location.origin
       const shareUrl = `${origin}${PATHS.SHARE}/${shareToken}`
       const embedUrl = `${origin}${PATHS.EMBED}/${shareToken}`

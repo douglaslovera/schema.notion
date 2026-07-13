@@ -20,7 +20,7 @@ export function proxy(request: NextRequest) {
 
   // Do not redirect /sign-in based on cookie presence alone.
   // A stale/invalid Better Auth cookie can exist without a valid server session,
-  // which causes an infinite /sign-in <-> /schemas redirect loop.
+  // which causes an infinite /sign-in <-> protected-route redirect loop.
 
   return NextResponse.next()
 }

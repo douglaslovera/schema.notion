@@ -1,4 +1,5 @@
 import { isUserAllowlisted } from '@/lib/access-allowlist'
+import { PATHS } from '@/constants/paths'
 import { getCurrentUser } from '@/lib/auth'
 import { getThread, getThreadsByUserId } from '@/lib/thread'
 import type { Message } from '@/types/chat'
@@ -50,9 +51,14 @@ function getRelativeThreadDate(date: Date) {
   const [unit, secondsPerUnit] =
     intervals.find(([, seconds]) => elapsedSeconds >= seconds) ??
     intervals[intervals.length - 1]
+  const value = Math.floor(elapsedSeconds / secondsPerUnit)
+
+  if (unit === 'month') {
+    return `${value} ${value === 1 ? 'mes' : 'meses'}`
+  }
 
   return relativeTime
-    .format(-Math.floor(elapsedSeconds / secondsPerUnit), unit)
+    .format(-value, unit)
     .replace(/^hace\s+/, '')
 }
 
@@ -88,8 +94,8 @@ export default async function Schema({ params }: PageProps) {
 
   const thread = await getThread(chatId)
 
-  if (!thread || thread.userId !== user.id) {
-    redirect('/schemas')
+  if (thread && thread.userId !== user.id) {
+    redirect(PATHS.NEW_CHAT)
   }
 
   const threads = await getThreadsByUserId(user.id)
@@ -102,6 +108,8 @@ export default async function Schema({ params }: PageProps) {
       updatedAt: item.updatedAt.toISOString(),
       updatedAtLabel: getRelativeThreadDate(item.updatedAt),
       groupLabel: getThreadGroup(item.updatedAt),
+      isCanvasShared: item.isCanvasShared,
+      shareToken: item.shareToken,
     }))
 
   return (

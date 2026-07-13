@@ -1,7 +1,7 @@
 export const PATHS = {
   HOME: '/',
   CHAT: '/schema',
-  SCHEMAS: '/schemas',
+  NEW_CHAT: '/schema/new',
   SHARE: '/share',
   EMBED: '/embed',
 } as const

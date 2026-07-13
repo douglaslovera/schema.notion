@@ -68,7 +68,7 @@ export function AccountMenu({
         <div className="my-1 h-px bg-border/80" />
 
         <Link
-          href="/schemas"
+          href="/schema/new"
           className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm opacity-80"
         >
           <span className="flex items-center gap-2">

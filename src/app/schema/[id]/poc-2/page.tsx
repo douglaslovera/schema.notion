@@ -41,7 +41,7 @@ export default async function Poc2ChatPage({
   const thread = await getThread(chatId)
 
   if (!thread || thread.userId !== user.id) {
-    redirect('/schemas')
+    redirect('/schema/new')
   }
 
   const threads = await getThreadsByUserId(user.id)

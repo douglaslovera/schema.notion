@@ -141,7 +141,8 @@ The current UI supports signing in with email and password but does not expose a
 | --- | --- | --- |
 | `/` | Public | Product landing page and waitlist. |
 | `/sign-in` | Public | Email/password and Google sign-in. |
-| `/schemas` | Authenticated and allowlisted | Start a workspace or reopen saved chats. |
+| `/schemas` | Authenticated | Compatibility route that redirects to `/schema/new`. |
+| `/schema/new` | Authenticated and allowlisted | Open a new chat. |
 | `/schema/:id` | Authenticated, allowlisted, and owner-only | Chat and interactive schema canvas. |
 | `/share/:token` | Public when sharing is enabled | Read-only shared canvas. |
 | `/embed/:token` | Public when sharing is enabled | Read-only canvas intended for iframe embedding. |

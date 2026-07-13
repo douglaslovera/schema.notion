@@ -28,7 +28,7 @@ export function SignInScreen() {
       const response = await authClient.signIn.email({
         email,
         password,
-        callbackURL: '/schemas',
+        callbackURL: '/schema/new',
       })
 
       if (response.error) {
@@ -37,7 +37,7 @@ export function SignInScreen() {
         return
       }
 
-      router.push('/schemas')
+      router.push('/schema/new')
       router.refresh()
     } catch (error) {
       console.error('Failed to authenticate with email and password', error)
@@ -55,7 +55,7 @@ export function SignInScreen() {
     try {
       await authClient.signIn.social({
         provider: 'google',
-        callbackURL: '/schemas',
+        callbackURL: '/schema/new',
       })
     } catch (error) {
       console.error('Failed to start Google sign-in', error)
@@ -83,12 +83,12 @@ export function SignInScreen() {
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
             Iniciar sesión
           </p>
-          <h1 className="editorial-title text-3xl tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-[-0.03em]">
             Entra para continuar con tus esquemas.
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Usa tu email y contraseña para abrir /schemas y retomar cualquier
-            workspace guardado.
+            Usa tu email y contraseña para abrir un chat nuevo o retomar
+            cualquier workspace guardado desde la barra lateral.
           </p>
         </div>
 

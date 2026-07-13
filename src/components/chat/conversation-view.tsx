@@ -1,7 +1,37 @@
 'use client'
 
 import { useChatStore } from '@/stores/chat'
-import { Sparkles } from 'lucide-react'
+import {
+  BriefcaseBusiness,
+  CalendarDays,
+  FolderKanban,
+  Sparkles,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+
+const STARTER_IDEAS = [
+  {
+    title: 'Organiza un CRM de ventas',
+    description: 'Clientes, contactos, oportunidades y actividades.',
+    prompt:
+      'Quiero construir un CRM de ventas con clientes, contactos, oportunidades y actividades relacionadas.',
+    icon: BriefcaseBusiness,
+  },
+  {
+    title: 'Crea un calendario de contenido',
+    description: 'Ideas, canales, campañas y publicaciones.',
+    prompt:
+      'Quiero crear un calendario de contenido para organizar ideas, canales, campañas y publicaciones.',
+    icon: CalendarDays,
+  },
+  {
+    title: 'Gestiona proyectos y tareas',
+    description: 'Proyectos, tareas, hitos, responsables y fechas.',
+    prompt:
+      'Quiero gestionar proyectos con tareas, hitos, responsables, fechas y estados de avance.',
+    icon: FolderKanban,
+  },
+] as const
 
 function formatMessageTime(timestamp: number) {
   return new Intl.DateTimeFormat('es-ES', {
@@ -11,22 +41,69 @@ function formatMessageTime(timestamp: number) {
 }
 
 export function ConversationView() {
-  const { chatHistory, isLoading } = useChatStore()
+  const { chatId, chatHistory, handleSendMessage, isLoading } = useChatStore()
+  const [areStarterIdeasExiting, setAreStarterIdeasExiting] = useState(false)
+  const starterExitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
+
+  useEffect(() => {
+    return () => {
+      if (starterExitTimeoutRef.current) {
+        clearTimeout(starterExitTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (!chatHistory?.length && !isLoading) {
     return (
-      <div className="grid h-full min-h-52 place-items-center">
-        <div className="max-w-sm rounded-2xl border border-border/70 bg-[color:var(--surface)] p-4 text-center">
-          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+      <div className="flex h-full min-h-72 items-center justify-center py-6">
+        <div className="w-full max-w-3xl">
+          <div className="mx-auto max-w-xl text-center">
+            <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-xl border border-border bg-card shadow-sm">
+              <Sparkles className="size-4 text-muted-foreground" />
+            </div>
+            <h1 className="text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+              ¿Qué quieres construir en Notion?
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              Describe tu forma de trabajar o elige una idea para crear la
+              estructura inicial de tu workspace.
+            </p>
           </div>
-          <p className="text-sm font-medium tracking-tight">
-            Empieza la conversación
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Describe tu caso de uso y te propongo una estructura inicial de
-            bases de datos.
-          </p>
+
+          <div className="mt-7 grid gap-2.5 md:grid-cols-3">
+            {STARTER_IDEAS.map((idea) => {
+              const Icon = idea.icon
+
+              return (
+                <button
+                  key={idea.title}
+                  type="button"
+                  disabled={!chatId || areStarterIdeasExiting}
+                  onClick={() => {
+                    if (!chatId || areStarterIdeasExiting) return
+
+                    setAreStarterIdeasExiting(true)
+                    starterExitTimeoutRef.current = setTimeout(() => {
+                      void handleSendMessage(idea.prompt, chatId)
+                    }, 220)
+                  }}
+                  className={`group rounded-2xl border border-border/80 bg-card p-4 text-left shadow-[0_1px_0_var(--line-subtle)] transition-[border-color,background-color] hover:border-foreground/20 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-60 ${areStarterIdeasExiting ? 'starter-ideas-exit' : ''}`}
+                >
+                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                  <span className="mt-4 block text-sm font-medium tracking-tight">
+                    {idea.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                    {idea.description}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -60,6 +137,8 @@ export function ConversationView() {
 
               <div
                 className={`rounded-2xl border px-4 py-3 text-left shadow-[0_1px_0_var(--line-subtle)] ${
+                  isUser ? 'message-pop-in' : ''
+                } ${
                   isUser
                     ? 'rounded-tr-md border-foreground/10 bg-[color:var(--surface-strong)]'
                     : 'rounded-tl-md border-border bg-card'
