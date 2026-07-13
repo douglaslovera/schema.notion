@@ -9,18 +9,12 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-type AuthMode = 'sign-in' | 'sign-up'
-
 export function SignInScreen() {
   const router = useRouter()
-  const [mode, setMode] = useState<AuthMode>('sign-in')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-
-  const isSignUp = mode === 'sign-up'
 
   const handleEmailAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -31,25 +25,14 @@ export function SignInScreen() {
     setErrorMessage(null)
 
     try {
-      const response = isSignUp
-        ? await authClient.signUp.email({
-            name: name.trim() || email.split('@')[0],
-            email,
-            password,
-            callbackURL: '/schemas',
-          })
-        : await authClient.signIn.email({
-            email,
-            password,
-            callbackURL: '/schemas',
-          })
+      const response = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: '/schemas',
+      })
 
       if (response.error) {
-        setErrorMessage(
-          isSignUp
-            ? 'No pudimos crear la cuenta. Revisa los datos e inténtalo de nuevo.'
-            : 'Email o contraseña incorrectos.',
-        )
+        setErrorMessage('Email o contraseña incorrectos.')
         setIsSigningIn(false)
         return
       }
@@ -114,24 +97,6 @@ export function SignInScreen() {
           onSubmit={handleEmailAuth}
           suppressHydrationWarning
         >
-          {isSignUp ? (
-            <div className="space-y-1.5">
-              <label htmlFor="name" className="text-sm font-medium">
-                Nombre
-              </label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                disabled={isSigningIn}
-                suppressHydrationWarning
-              />
-            </div>
-          ) : null}
-
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-sm font-medium">
               Email
@@ -157,7 +122,7 @@ export function SignInScreen() {
               id="password"
               name="password"
               type="password"
-              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={isSigningIn}
@@ -173,30 +138,12 @@ export function SignInScreen() {
             disabled={isSigningIn}
           >
             <LogIn className="h-4 w-4" />
-            {isSigningIn
-              ? 'Procesando...'
-              : isSignUp
-                ? 'Crear cuenta'
-                : 'Iniciar sesión'}
+            {isSigningIn ? 'Procesando...' : 'Iniciar sesión'}
           </Button>
 
           {errorMessage ? (
             <p className="text-sm text-destructive">{errorMessage}</p>
           ) : null}
-
-          <button
-            type="button"
-            className="w-full text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            onClick={() => {
-              setMode(isSignUp ? 'sign-in' : 'sign-up')
-              setErrorMessage(null)
-            }}
-            disabled={isSigningIn}
-          >
-            {isSignUp
-              ? 'Ya tienes cuenta? Inicia sesión'
-              : 'No tienes cuenta? Crea una'}
-          </button>
         </form>
 
         <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">

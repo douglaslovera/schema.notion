@@ -18,6 +18,7 @@ import type { User } from '@/lib/auth'
 import { parseNotionSchemaGraph } from '@/lib/parse-utils'
 import { cn } from '@/lib/utils'
 import { useChatStore } from '@/stores/chat'
+import { useConfigStore } from '@/stores/config'
 import { ReactFlowProvider } from '@xyflow/react'
 import {
   Database,
@@ -62,7 +63,6 @@ export default function PageContent({
   const [hasMounted, setHasMounted] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
-  const [chatListCollapsed, setChatListCollapsed] = useState(false)
   const [diagramSidebarPreviewOpen, setDiagramSidebarPreviewOpen] =
     useState(false)
   const [diagramSidebarPreviewRendered, setDiagramSidebarPreviewRendered] =
@@ -80,6 +80,7 @@ export default function PageContent({
     pendingNavigationChatId: pendingChatId,
     setPendingNavigationChatId: setPendingChatId,
   } = useChatStore()
+  const { chatListCollapsed, setChatListCollapsed } = useConfigStore()
   const processedStarterForChatIdRef = useRef<string | null>(null)
   const conversationScrollRef = useRef<HTMLDivElement>(null)
   const diagramCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -329,23 +330,19 @@ export default function PageContent({
       >
       <div
         onPointerEnter={() => {
-          if (diagramOpen && chatListCollapsed) {
+          if (chatListCollapsed) {
             showDiagramSidebarPreview()
           }
         }}
         onPointerMove={() => {
-          if (
-            diagramOpen &&
-            chatListCollapsed &&
-            !diagramSidebarPreviewOpen
-          ) {
+          if (chatListCollapsed && !diagramSidebarPreviewOpen) {
             showDiagramSidebarPreview()
           }
         }}
         onPointerLeave={hideDiagramSidebarPreview}
         className={cn(
           'flex min-h-0 flex-1 flex-col',
-          diagramOpen && chatListCollapsed
+          chatListCollapsed
             ? cn(
                 'lg:fixed lg:bottom-0 lg:left-0 lg:top-[84px] lg:z-[70] lg:h-auto lg:transition-[width] lg:duration-200 lg:ease-out',
                 diagramSidebarPreviewRendered ? 'lg:w-[300px]' : 'lg:w-3',
@@ -357,16 +354,14 @@ export default function PageContent({
           className={cn(
             'flex min-h-0 flex-1 flex-col bg-transparent p-2 text-sidebar-foreground',
             'lg:transition-[opacity,translate] lg:duration-200 lg:ease-out',
-            diagramOpen && chatListCollapsed
+            chatListCollapsed
               ? cn(
                   'lg:absolute lg:inset-y-0 lg:left-0 lg:w-[300px]',
                   diagramSidebarPreviewOpen
                     ? 'lg:translate-x-0 lg:opacity-100'
                     : 'lg:pointer-events-none lg:-translate-x-full lg:opacity-0',
                 )
-              : chatListCollapsed
-                ? 'lg:pointer-events-none lg:-translate-x-3 lg:opacity-0'
-                : 'lg:translate-x-0 lg:opacity-100',
+              : 'lg:translate-x-0 lg:opacity-100',
           )}
         >
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden border border-sidebar-border/90 bg-sidebar shadow-[0_18px_50px_color-mix(in_oklab,var(--foreground)_8%,transparent)] lg:rounded-2xl">
@@ -390,7 +385,10 @@ export default function PageContent({
               size="icon"
               type="button"
               variant="ghost"
-              className="size-8 rounded-lg"
+              className={cn(
+                'size-8 rounded-lg',
+                chatListCollapsed && 'lg:hidden',
+              )}
               onClick={() => {
                 resetDiagramSidebarPreview()
 
@@ -524,7 +522,7 @@ export default function PageContent({
                   closeDiagram()
 
                   if (window.matchMedia('(min-width: 1024px)').matches) {
-                    setChatListCollapsed((current) => !current)
+                    setChatListCollapsed(!chatListCollapsed)
                     return
                   }
 
