@@ -2,8 +2,6 @@
 
 schema.notion is an AI-assisted workspace designer for Notion. Describe a workflow in natural language, refine it through a conversation, and inspect the resulting Notion databases, properties, relations, rollups, and formulas as an interactive diagram.
 
-The application is currently presented in Spanish, while this document covers the project setup and architecture in English.
-
 ## Current features
 
 - Generate complete Notion workspace schemas from natural-language descriptions.
