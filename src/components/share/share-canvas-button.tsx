@@ -115,11 +115,11 @@ export function ShareCanvasButton({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl"
+            className="h-[42px] rounded-xl"
             disabled={disabled}
           >
             <Share2 className="h-4 w-4" />
-            Share
+            <span className="hidden sm:inline">Share</span>
           </Button>
         </PopoverTrigger>
 

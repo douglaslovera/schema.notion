@@ -3,6 +3,13 @@
 import { useChatStore } from '@/stores/chat'
 import { Sparkles } from 'lucide-react'
 
+function formatMessageTime(timestamp: number) {
+  return new Intl.DateTimeFormat('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp))
+}
+
 export function ConversationView() {
   const { chatHistory, isLoading } = useChatStore()
 
@@ -26,47 +33,49 @@ export function ConversationView() {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-end gap-7 py-2">
       {chatHistory?.map((message) => {
         const isUser = message.role === 'user'
 
         return (
           <div
             key={message.id}
-            className="group relative pb-5"
+            className={`${isUser ? 'ml-auto max-w-[88%] sm:max-w-[78%]' : 'mr-auto max-w-[92%] sm:max-w-[84%]'}`}
           >
-            <div
-              className={`rounded-2xl border p-3 ${
-                isUser
-                  ? 'border-border/80 bg-[color:var(--surface-strong)] text-foreground'
-                  : 'border-border/80 bg-card text-card-foreground'
-              }`}
-            >
-              <p className="whitespace-pre-line text-sm leading-6 text-foreground">
-                {message.message}
-              </p>
-            </div>
-
-            <div className="pointer-events-none absolute bottom-0 right-2 flex h-5 items-center opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:opacity-100 motion-safe:translate-y-0.5">
-              <time
-                dateTime={new Date(message.timestamp).toISOString()}
-                className="text-[10px] tabular-nums text-muted-foreground"
+            <div className={`min-w-0 ${isUser ? 'text-right' : 'text-left'}`}>
+              <div
+                className={`mb-1.5 flex items-center gap-2 px-1 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
-                {new Date(message.timestamp).toLocaleString('es-ES', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </time>
+                <span className="text-[11px] font-medium text-foreground/80">
+                  {isUser ? 'Tú' : 'Asistente'}
+                </span>
+                <time
+                  dateTime={new Date(message.timestamp).toISOString()}
+                  title={new Date(message.timestamp).toLocaleString('es-ES')}
+                  className="text-[10px] tabular-nums text-muted-foreground"
+                >
+                  {formatMessageTime(message.timestamp)}
+                </time>
+              </div>
+
+              <div
+                className={`rounded-2xl border px-4 py-3 text-left shadow-[0_1px_0_var(--line-subtle)] ${
+                  isUser
+                    ? 'rounded-tr-md border-foreground/10 bg-[color:var(--surface-strong)]'
+                    : 'rounded-tl-md border-border bg-card'
+                }`}
+              >
+                <p className="whitespace-pre-line text-sm leading-6 text-foreground">
+                  {message.message}
+                </p>
+              </div>
             </div>
           </div>
         )
       })}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-2">
+        <div className="mr-auto">
           <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-foreground/40" />
             Procesando respuesta...

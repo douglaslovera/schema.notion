@@ -9,6 +9,24 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = { params: Promise<{ id: string }> }
 
+function getThreadGroup(date: Date) {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfThreadDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  )
+  const elapsedDays = Math.floor(
+    (startOfToday.getTime() - startOfThreadDay.getTime()) / 86_400_000,
+  )
+
+  if (elapsedDays <= 0) return 'Hoy'
+  if (elapsedDays === 1) return 'Ayer'
+  if (elapsedDays < 7) return 'Esta semana'
+  return 'Anteriores'
+}
+
 function getRelativeThreadDate(date: Date) {
   const elapsedSeconds = Math.max(
     0,
@@ -83,6 +101,7 @@ export default async function Schema({ params }: PageProps) {
       title: getThreadTitle(item),
       updatedAt: item.updatedAt.toISOString(),
       updatedAtLabel: getRelativeThreadDate(item.updatedAt),
+      groupLabel: getThreadGroup(item.updatedAt),
     }))
 
   return (

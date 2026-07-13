@@ -20,7 +20,7 @@ export function ChatInput() {
     const maxHeight = 144
     textarea.style.height = '0px'
     const nextHeight = Math.min(textarea.scrollHeight, maxHeight)
-    textarea.style.height = `${Math.max(nextHeight, 44)}px`
+    textarea.style.height = `${Math.max(nextHeight, 56)}px`
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }
 
@@ -46,10 +46,10 @@ export function ChatInput() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-2"
+      className="w-full"
       suppressHydrationWarning
     >
-      <div className="rounded-2xl border border-border/80 bg-background p-2">
+      <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-[0_8px_28px_color-mix(in_oklab,var(--foreground)_7%,transparent)] focus-within:border-foreground/25 focus-within:ring-2 focus-within:ring-ring/20">
         <textarea
           ref={textareaRef}
           name="message"
@@ -61,26 +61,21 @@ export function ChatInput() {
           onKeyDown={handleKeyDown}
           placeholder="Describe la base de datos que quieres construir..."
           rows={1}
-          className="max-h-36 min-h-11 w-full resize-none border-0 bg-transparent px-2 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground"
+          className="max-h-36 min-h-14 min-w-0 flex-1 basis-80 resize-none border-0 bg-transparent px-2.5 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground"
           disabled={isLoading}
           required
           spellCheck={false}
           suppressHydrationWarning
         />
-        <div className="mt-2 flex items-center justify-between gap-2 px-1">
-          <p className="text-[11px] text-muted-foreground">
-            <kbd className="rounded border border-border px-1 font-mono text-[10px]">Enter</kbd> envía, <kbd className="rounded border border-border px-1 font-mono text-[10px]">Shift + Enter</kbd> agrega línea.
-          </p>
-          <Button
-            type="submit"
-            size="sm"
-            className="rounded-lg"
-            disabled={isLoading || !message.trim()}
-          >
-            <Send className="h-3.5 w-3.5" />
-            Enviar
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          size="default"
+          className="ml-auto min-w-24 rounded-xl shadow-sm"
+          disabled={isLoading || !message.trim()}
+        >
+          <Send className="h-3.5 w-3.5" />
+          Enviar
+        </Button>
       </div>
     </form>
   )
