@@ -1,171 +1,275 @@
-'use server'
+import 'server-only'
 
 import { db } from '@/db'
-import { type Thread, threads } from '@/db/schema'
+import { messages, threads } from '@/db/schema'
 import type { Message } from '@/types/chat'
-import { and, eq } from 'drizzle-orm'
-import { requireAllowlistedCurrentUser } from './access-allowlist'
+import type {
+  SharedCanvasThread,
+  SidebarThread,
+  ThreadWithConversation,
+} from '@/types/thread'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { buildThreadTitle } from './thread-validation'
 
-export interface ThreadData {
-  chatId: string
-  userId: string
-  diagram?: string
-  conversation?: Message[]
-  isCanvasShared?: boolean
-  shareToken?: string | null
-}
-
-export interface SharedCanvasThread {
-  chatId: string
-  diagram: string
-}
-
-type ThreadDbError = {
-  code?: string
-  constraint_name?: string
-  detail?: string
-  table_name?: string
-}
-
-function logThreadDbError(
-  operation: 'createThread' | 'updateThread',
-  context: { chatId: string; userId?: string },
-  error: unknown,
-) {
-  const dbError = error as ThreadDbError
-
-  console.error(`[thread:${operation}] Database error`, {
-    ...context,
-    code: dbError?.code,
-    constraintName: dbError?.constraint_name,
-    detail: dbError?.detail,
-    tableName: dbError?.table_name,
-    error,
-  })
-}
-
-export async function createThread(
-  userId: string,
-  data: Partial<ThreadData>,
-): Promise<Thread> {
-  const resolvedChatId = data.chatId || crypto.randomUUID()
-
-  try {
-    const [newThread] = await db
-      .insert(threads)
-      .values({
-        chatId: resolvedChatId,
-        userId,
-        diagram: data.diagram || '',
-        conversation: data.conversation || [],
-      })
-      .returning()
-
-    return newThread
-  } catch (error) {
-    logThreadDbError('createThread', { chatId: resolvedChatId, userId }, error)
-    throw error
+export class ThreadOwnershipError extends Error {
+  constructor() {
+    super('Thread not found')
+    this.name = 'ThreadOwnershipError'
   }
 }
 
-export async function getThread(chatId: string): Promise<Thread | null> {
+export interface UserTurn {
+  currentDiagram: string
+  history: Message[]
+}
+
+function toMessage(record: typeof messages.$inferSelect): Message {
+  return {
+    id: record.clientId,
+    timestamp: record.sentAt.getTime(),
+    role: record.role,
+    diagram: record.diagram,
+    message: record.message,
+  }
+}
+
+const conversationOrder = [
+  asc(messages.sentAt),
+  asc(messages.createdAt),
+  asc(messages.id),
+]
+
+export async function getThreadForUser(
+  chatId: string,
+  userId: string,
+): Promise<ThreadWithConversation | null> {
   const [thread] = await db
     .select()
     .from(threads)
-    .where(eq(threads.chatId, chatId))
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
     .limit(1)
 
-  return thread || null
-}
-
-export async function updateThread(
-  chatId: string,
-  data: Partial<ThreadData>,
-  userId?: string,
-): Promise<Thread | null> {
-  const updateData: Partial<Thread> = {}
-
-  if (data.diagram !== undefined) updateData.diagram = data.diagram
-  if (data.conversation !== undefined)
-    updateData.conversation = data.conversation
-  if (data.isCanvasShared !== undefined)
-    updateData.isCanvasShared = data.isCanvasShared
-  if (data.shareToken !== undefined) updateData.shareToken = data.shareToken
-
-  if (Object.keys(updateData).length === 0) {
-    return await getThread(chatId)
+  if (!thread) {
+    return null
   }
 
-  updateData.updatedAt = new Date()
-
-  try {
-    const [updatedThread] = await db
-      .update(threads)
-      .set(updateData)
-      .where(
-        userId
-          ? and(eq(threads.chatId, chatId), eq(threads.userId, userId))
-          : eq(threads.chatId, chatId),
-      )
-      .returning()
-
-    return updatedThread || null
-  } catch (error) {
-    logThreadDbError('updateThread', { chatId, userId }, error)
-    throw error
-  }
-}
-
-export async function getThreadsByUserId(userId: string): Promise<Thread[]> {
-  const userThreads = await db
+  const conversation = await db
     .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId))
+    .orderBy(...conversationOrder)
+
+  return {
+    ...thread,
+    conversation: conversation.map(toMessage),
+  }
+}
+
+export async function getThreadSummariesForUser(
+  userId: string,
+): Promise<SidebarThread[]> {
+  return db
+    .select({
+      chatId: threads.chatId,
+      title: threads.title,
+      updatedAt: threads.updatedAt,
+      isCanvasShared: threads.isCanvasShared,
+      shareToken: threads.shareToken,
+    })
     .from(threads)
     .where(eq(threads.userId, userId))
-    .orderBy(threads.createdAt)
-
-  return userThreads
+    .orderBy(desc(threads.updatedAt))
 }
 
-export async function deleteThread(chatId: string): Promise<boolean> {
-  const user = await requireAllowlistedCurrentUser()
+/**
+ * Persist the user's message and return the context needed to answer it.
+ *
+ * The message is written before the model is ever called, so a failed or
+ * rejected turn still leaves the user's input in the thread. Re-sending the
+ * same clientMessageId is a no-op, which makes client retries safe.
+ */
+export async function appendUserMessage(
+  userId: string,
+  chatId: string,
+  clientMessageId: string,
+  message: string,
+): Promise<UserTurn> {
+  return db.transaction(async (tx) => {
+    const [thread] = await tx
+      .insert(threads)
+      .values({
+        chatId,
+        userId,
+        title: buildThreadTitle(message),
+      })
+      .onConflictDoUpdate({
+        target: threads.chatId,
+        set: { updatedAt: new Date() },
+        setWhere: eq(threads.userId, userId),
+      })
+      .returning()
 
+    // A thread owned by someone else matches the conflict target but fails
+    // setWhere, so nothing comes back.
+    if (!thread) {
+      throw new ThreadOwnershipError()
+    }
+
+    await tx
+      .insert(messages)
+      .values({
+        chatId,
+        clientId: clientMessageId,
+        role: 'user',
+        message,
+        diagram: '',
+        sentAt: new Date(),
+      })
+      .onConflictDoNothing({
+        target: [messages.chatId, messages.clientId],
+      })
+
+    const conversation = await tx
+      .select()
+      .from(messages)
+      .where(eq(messages.chatId, chatId))
+      .orderBy(...conversationOrder)
+
+    return {
+      currentDiagram: thread.diagram,
+      // The turn being answered is excluded: callers pass it to the model
+      // separately, and dropping it here also keeps retries idempotent.
+      history: conversation
+        .filter((record) => record.clientId !== clientMessageId)
+        .map(toMessage),
+    }
+  })
+}
+
+/**
+ * Persist the assistant's reply. When `diagram` is provided it becomes the
+ * thread's current diagram; rejections and errors pass no diagram and leave it
+ * untouched.
+ */
+export async function appendAssistantMessage(
+  userId: string,
+  chatId: string,
+  reply: { message: string; diagram?: string },
+): Promise<Message> {
+  return db.transaction(async (tx) => {
+    const [thread] = await tx
+      .update(threads)
+      .set(
+        reply.diagram === undefined
+          ? { updatedAt: new Date() }
+          : { diagram: reply.diagram, updatedAt: new Date() },
+      )
+      .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
+      .returning({ chatId: threads.chatId })
+
+    if (!thread) {
+      throw new ThreadOwnershipError()
+    }
+
+    const [record] = await tx
+      .insert(messages)
+      .values({
+        chatId,
+        clientId: crypto.randomUUID(),
+        role: 'model',
+        message: reply.message,
+        diagram: reply.diagram ?? '',
+        sentAt: new Date(),
+      })
+      .returning()
+
+    return toMessage(record)
+  })
+}
+
+export async function deleteThreadForUser(
+  chatId: string,
+  userId: string,
+): Promise<boolean> {
   const [deletedThread] = await db
     .delete(threads)
-    .where(and(eq(threads.chatId, chatId), eq(threads.userId, user.id)))
-    .returning()
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
+    .returning({ chatId: threads.chatId })
 
   return !!deletedThread
 }
 
-export async function enableCanvasSharing(chatId: string): Promise<string> {
-  const user = await requireAllowlistedCurrentUser()
-
-  const thread = await getThread(chatId)
-
-  if (!thread || thread.userId !== user.id) {
-    throw new Error('Thread not found')
-  }
-
-  if (thread.isCanvasShared && thread.shareToken) {
-    return thread.shareToken
-  }
-
-  const shareToken = thread.shareToken || crypto.randomUUID().replaceAll('-', '')
-
-  const updatedThread = await updateThread(
-    chatId,
-    {
+export async function enableCanvasSharingForUser(
+  chatId: string,
+  userId: string,
+): Promise<string> {
+  const candidateToken = crypto.randomUUID().replaceAll('-', '')
+  const [thread] = await db
+    .update(threads)
+    .set({
       isCanvasShared: true,
-      shareToken,
-    },
-    user.id,
-  )
+      shareToken: sql`coalesce(${threads.shareToken}, ${candidateToken})`,
+    })
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
+    .returning({ shareToken: threads.shareToken })
 
-  if (!updatedThread?.shareToken) {
-    throw new Error('Failed to enable canvas sharing')
+  if (!thread?.shareToken) {
+    throw new ThreadOwnershipError()
   }
 
-  return updatedThread.shareToken
+  return thread.shareToken
+}
+
+export async function duplicateThreadForUser(
+  sourceChatId: string,
+  userId: string,
+  newChatId: string,
+): Promise<ThreadWithConversation | null> {
+  return db.transaction(async (tx) => {
+    const [source] = await tx
+      .select()
+      .from(threads)
+      .where(and(eq(threads.chatId, sourceChatId), eq(threads.userId, userId)))
+      .limit(1)
+
+    if (!source) {
+      return null
+    }
+
+    const sourceMessages = await tx
+      .select()
+      .from(messages)
+      .where(eq(messages.chatId, sourceChatId))
+      .orderBy(...conversationOrder)
+
+    const [duplicate] = await tx
+      .insert(threads)
+      .values({
+        chatId: newChatId,
+        userId,
+        title: source.title,
+        diagram: source.diagram,
+      })
+      .returning()
+
+    if (sourceMessages.length > 0) {
+      await tx.insert(messages).values(
+        sourceMessages.map((message) => ({
+          chatId: newChatId,
+          clientId: message.clientId,
+          role: message.role,
+          message: message.message,
+          diagram: message.diagram,
+          sentAt: message.sentAt,
+        })),
+      )
+    }
+
+    return {
+      ...duplicate,
+      conversation: sourceMessages.map(toMessage),
+    }
+  })
 }
 
 export async function getSharedThreadByToken(
@@ -173,73 +277,13 @@ export async function getSharedThreadByToken(
 ): Promise<SharedCanvasThread | null> {
   const [thread] = await db
     .select({
-      chatId: threads.chatId,
       diagram: threads.diagram,
     })
     .from(threads)
     .where(
-      and(
-        eq(threads.shareToken, shareToken),
-        eq(threads.isCanvasShared, true),
-      ),
+      and(eq(threads.shareToken, shareToken), eq(threads.isCanvasShared, true)),
     )
     .limit(1)
 
   return thread || null
-}
-
-export async function duplicateThread(
-  chatId: string,
-  userId: string,
-): Promise<Thread | null> {
-  const user = await requireAllowlistedCurrentUser()
-
-  if (user.id !== userId) {
-    throw new Error('Cannot duplicate thread for another user')
-  }
-
-  const thread = await getThread(chatId)
-
-  if (!thread) {
-    return null
-  }
-
-  const newChatId = crypto.randomUUID()
-
-  const newThread = await createThread(userId, {
-    chatId: newChatId,
-    diagram: thread.diagram,
-    conversation: thread.conversation as Message[],
-  })
-
-  return newThread
-}
-
-/**
- * Save or update a thread for the current authenticated user.
- * Automatically resolves the user from the session.
- * If the thread doesn't exist, creates it. Otherwise updates it.
- */
-export async function saveThreadForCurrentUser(
-  data: Partial<ThreadData> & { chatId: string },
-): Promise<Thread> {
-  const user = await requireAllowlistedCurrentUser()
-
-  const existingThread = await getThread(data.chatId)
-
-  if (existingThread && existingThread.userId !== user.id) {
-    throw new Error('Thread does not belong to the current user')
-  }
-
-  if (existingThread) {
-    // Update existing thread
-    const updated = await updateThread(data.chatId, data, user.id)
-    if (!updated) {
-      throw new Error('Failed to update thread')
-    }
-    return updated
-  }
-
-  // Create new thread
-  return createThread(user.id, data)
 }

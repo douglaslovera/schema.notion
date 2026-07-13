@@ -1,18 +1,10 @@
-'use server'
+import 'server-only'
 
+import type { User } from '@/types/auth'
 import { headers } from 'next/headers'
 import { auth } from './better-auth'
 
-export interface User {
-  id: string
-  email: string
-}
-
-export async function logout(): Promise<void> {
-  await auth.api.signOut({
-    headers: await headers(),
-  })
-}
+export type { User } from '@/types/auth'
 
 export async function getCurrentUser(): Promise<User | null> {
   const session = await auth.api.getSession({
@@ -25,6 +17,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
   return {
     id: session.user.id,
-    email: session.user.email || `${session.user.name || 'notion-user'}@unknown`,
+    email:
+      session.user.email || `${session.user.name || 'notion-user'}@unknown`,
   }
 }

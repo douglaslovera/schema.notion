@@ -1,9 +1,10 @@
-'use server'
+import 'server-only'
 
 import { db } from '@/db'
 import { accessAllowlist } from '@/db/schema'
+import type { User } from '@/types/auth'
 import { eq, sql } from 'drizzle-orm'
-import { getCurrentUser, type User } from './auth'
+import { getCurrentUser } from './auth'
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
@@ -26,16 +27,14 @@ export async function getAllowlistedCurrentUser(): Promise<User | null> {
     return null
   }
 
-  const isAllowlisted = await isUserAllowlisted(user)
-
-  return isAllowlisted ? user : null
+  return (await isUserAllowlisted(user)) ? user : null
 }
 
 export async function requireAllowlistedCurrentUser(): Promise<User> {
   const user = await getAllowlistedCurrentUser()
 
   if (!user) {
-    throw new Error('User is not allowlisted')
+    throw new Error('Unauthorized')
   }
 
   return user

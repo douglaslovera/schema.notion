@@ -64,6 +64,12 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
    pnpm db:migrate
    ```
 
+   Migration `0003_secure_thread_storage` backfills JSONB conversations into
+   the normalized `messages` table, treats existing timestamp values as UTC,
+   and removes the legacy `users` table. It aborts before changing data if it
+   finds orphaned thread, session, or account rows, so resolve any reported
+   orphan records before retrying. Back up production before applying it.
+
 5. Configure Google OAuth with this local callback URL:
 
    ```text
@@ -85,6 +91,10 @@ schema.notion is an AI-assisted workspace designer for Notion. Describe a workfl
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` | Yes | PostgreSQL connection string. |
+| `DATABASE_MAX_CONNECTIONS` | No | Maximum Postgres.js connections per application instance. Defaults to `5`; coordinate this with any external pool. |
+| `DATABASE_IDLE_TIMEOUT_SECONDS` | No | Seconds before an idle database connection is closed. Defaults to `20`. |
+| `DATABASE_CONNECT_TIMEOUT_SECONDS` | No | Database connection timeout in seconds. Defaults to `10`. |
+| `DATABASE_MAX_LIFETIME_SECONDS` | No | Maximum connection lifetime in seconds. Defaults to `1800`. |
 | `BETTER_AUTH_SECRET` | Yes | Secret used to sign and encrypt authentication data. Generate a long random value for each environment. |
 | `BETTER_AUTH_URL` | Yes | Canonical application URL, such as `http://localhost:3000`. |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | No | Client-side auth base URL. It can be omitted for same-origin requests. |
@@ -121,12 +131,12 @@ The current UI supports signing in with email and password but does not expose a
 | --- | --- |
 | `pnpm dev` | Run the development server with Turbopack. |
 | `pnpm build` | Create a production build. |
+| `pnpm test` | Run the authorization-boundary input regression tests. |
 | `pnpm start` | Run the production server. |
 | `pnpm lint` | Lint `src` with Biome. |
 | `pnpm lint:fix` | Apply Biome lint fixes to `src`. |
 | `pnpm db:generate` | Generate a migration from the Drizzle schema. |
 | `pnpm db:migrate` | Apply committed migrations. |
-| `pnpm db:push` | Push the current schema directly to the database. |
 | `pnpm db:studio` | Open Drizzle Studio. |
 
 ## Main routes
@@ -143,15 +153,20 @@ The current UI supports signing in with email and password but does not expose a
 
 Public sharing exposes only the generated canvas. It does not expose the conversation and does not allow editing.
 
+Thread conversations are stored as individual message rows. Thread saves use
+an ownership-constrained upsert and merge messages by their per-thread client
+ID, preventing stale tabs from deleting messages written by another request.
+
 ## Project structure
 
 ```text
 src/app/                 Next.js routes and application screens
 src/components/          Chat, diagram, navigation, sharing, and UI components
 src/db/                  Drizzle client and PostgreSQL schema
-src/lib/ai/              OpenRouter integration and model configuration
+src/lib/ai/              Authorized OpenRouter actions and model configuration
 src/lib/prompts/         Intent validation and Notion schema prompts
-src/lib/thread.ts        Thread persistence, ownership, and sharing actions
+src/lib/thread.ts        Server-only thread data access
+src/lib/thread-actions.ts Authorized thread mutations callable by clients
 src/stores/              Client-side chat and UI state
 drizzle/                 Committed SQL migrations
 ```
@@ -164,5 +179,6 @@ Before opening a pull request, run:
 
 ```bash
 pnpm lint
+pnpm test
 pnpm build
 ```

@@ -1,5 +1,3 @@
-import type { Message } from '@/types/chat'
-
 /**
  * Roles used internally by the AI service.
  */
@@ -27,7 +25,6 @@ export interface ValidationResult {
  */
 export interface SendMessageResult {
   responseText: string
-  updatedHistory: ChatMessage[]
 }
 
 /**
@@ -44,19 +41,16 @@ export interface AIProvider {
   validateUserIntent(userMessage: string): Promise<ValidationResult>
 
   /**
-   * Main schema generation. Sends the full conversation history
-   * plus a new user message, returns the AI's JSON schema response
-   * and the updated history.
+   * Main schema generation. Receives the conversation as plain text plus the
+   * single current diagram, and returns the AI's JSON schema response.
+   *
+   * `history` must not carry diagram snapshots: only the latest diagram is
+   * relevant to the model, and replaying every past version grows the context
+   * quadratically with the length of the conversation.
    */
-  sendUserMessage(
+  generateSchema(
     history: ChatMessage[],
     userMessage: string,
+    currentDiagram: string,
   ): Promise<SendMessageResult>
-
-  /**
-   * Convert the app's internal Message[] format into the
-   * ChatMessage[] format used for history replay.
-   */
-  normalizeChat(messages: Message[]): Promise<ChatMessage[]>
-
 }

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>schema.notion — chat data-flow fixes</title>
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --panel: #ffffff;
+    --ink: #1c1b1a;
+    --muted: #6b6864;
+    --line: #e4e1dc;
+    --bad: #b4433a;
+    --bad-soft: #fdf0ee;
+    --good: #2f6d4f;
+    --good-soft: #eef5f1;
+    --accent: #1c1b1a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171615;
+      --panel: #1f1e1d;
+      --ink: #ecebe9;
+      --muted: #97928c;
+      --line: #33312e;
+      --bad: #e08078;
+      --bad-soft: #2a1d1b;
+      --good: #7fbb9b;
+      --good-soft: #1a251f;
+      --accent: #ecebe9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171615; --panel: #1f1e1d; --ink: #ecebe9; --muted: #97928c;
+    --line: #33312e; --bad: #e08078; --bad-soft: #2a1d1b; --good: #7fbb9b;
+    --good-soft: #1a251f; --accent: #ecebe9;
+  }
+  :root[data-theme="light"] {
+    --bg: #fbfbfa; --panel: #ffffff; --ink: #1c1b1a; --muted: #6b6864;
+    --line: #e4e1dc; --bad: #b4433a; --bad-soft: #fdf0ee; --good: #2f6d4f;
+    --good-soft: #eef5f1; --accent: #1c1b1a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 72px 24px 120px; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 32px; margin-bottom: 56px; }
+  .eyebrow {
+    font: 600 11px/1 var(--mono);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 14px; letter-spacing: -.02em; font-weight: 600; }
+  .lede { font-size: 18px; color: var(--muted); margin: 0; max-width: 62ch; }
+
+  section { margin-bottom: 64px; }
+  h2 {
+    font-size: 12px;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 { font-size: 17px; margin: 0 0 8px; font-weight: 600; letter-spacing: -.01em; }
+  p { margin: 0 0 14px; }
+  .muted { color: var(--muted); }
+
+  code { font: 13px/1.5 var(--mono); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+
+  /* two-column compare */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+
+  .card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 22px; }
+  .card.before { border-color: color-mix(in srgb, var(--bad) 30%, var(--line)); }
+  .card.after  { border-color: color-mix(in srgb, var(--good) 30%, var(--line)); }
+
+  .tag {
+    display: inline-block;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+  .tag.before { background: var(--bad-soft); color: var(--bad); }
+  .tag.after  { background: var(--good-soft); color: var(--good); }
+
+  /* flow steps */
+  ol.flow { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  ol.flow li {
+    position: relative;
+    padding: 0 0 0 30px;
+    margin-bottom: 12px;
+    font-size: 14.5px;
+    counter-increment: s;
+  }
+  ol.flow li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: 1px;
+    width: 19px; height: 19px;
+    border-radius: 50%;
+    font: 600 10px/19px var(--mono);
+    text-align: center;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: var(--bg);
+  }
+  ol.flow li .where {
+    display: block;
+    font: 11px/1.5 var(--mono);
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  ol.flow li.danger { color: var(--bad); font-weight: 500; }
+  ol.flow li.danger::before { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+  ol.flow li.win { color: var(--good); font-weight: 500; }
+  ol.flow li.win::before { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+
+  /* chart */
+  .chart { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 26px; }
+  .bars { display: flex; align-items: flex-end; gap: 10px; height: 190px; margin: 22px 0 10px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; height: 100%; }
+  .bar { border-radius: 3px 3px 0 0; position: relative; }
+  .bar.old { background: color-mix(in srgb, var(--bad) 62%, transparent); }
+  .bar.new { background: color-mix(in srgb, var(--good) 72%, transparent); min-height: 4px; }
+  .bar-label { text-align: center; font: 10px/1.4 var(--mono); color: var(--muted); padding-top: 6px; }
+  .legend { display: flex; gap: 20px; font: 12px/1 var(--mono); color: var(--muted); margin-top: 16px; flex-wrap: wrap; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .swatch.old { background: color-mix(in srgb, var(--bad) 62%, transparent); }
+  .swatch.new { background: color-mix(in srgb, var(--good) 72%, transparent); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 720px) { .stats { grid-template-columns: 1fr; } }
+  .stat { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 20px; }
+  .stat .n { font: 600 26px/1.1 var(--mono); letter-spacing: -.02em; margin-bottom: 8px; }
+  .stat .n .arrow { color: var(--muted); font-weight: 400; margin: 0 6px; }
+  .stat .n .to { color: var(--good); }
+  .stat .k { font-size: 13px; color: var(--muted); }
+
+  /* checks */
+  ul.checks { list-style: none; margin: 0; padding: 0; }
+  ul.checks li {
+    padding: 11px 0 11px 26px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    font-size: 14.5px;
+  }
+  ul.checks li:last-child { border-bottom: 0; }
+  ul.checks li::before {
+    content: "✓";
+    position: absolute; left: 0; top: 11px;
+    color: var(--good); font-weight: 700; font-size: 13px;
+  }
+  ul.checks li .sub { display: block; color: var(--muted); font-size: 13px; margin-top: 1px; }
+
+  /* files */
+  .files { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 720px) { .files { grid-template-columns: 1fr; } }
+  .files h4 {
+    font: 600 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 12px;
+  }
+  .files ul { list-style: none; margin: 0; padding: 0; }
+  .files li { font: 12.5px/1.9 var(--mono); color: var(--ink); }
+  .files li.del { color: var(--muted); text-decoration: line-through; }
+
+  .open { border-left: 2px solid var(--line); padding: 2px 0 2px 18px; margin-bottom: 20px; }
+  .open h3 { font-size: 15px; }
+  .open p { font-size: 14.5px; color: var(--muted); margin: 0; }
+
+  footer { border-top: 1px solid var(--line); padding-top: 24px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">schema.notion · data layer</div>
+  <h1>Making the server the source of truth</h1>
+  <p class="lede">The database was a write-behind cache of browser state. Two changes moved authority to the server: the chat turn became one server action, and the model stopped being fed a copy of every diagram it had ever produced.</p>
+</header>
+
+<section>
+  <h2>The shape of the problem</h2>
+  <p>The schema refactor normalized <em>storage</em> — foreign keys, a real <code>messages</code> table, timestamptz, indexes. But it left <em>authority</em> in the browser. The client still assembled the entire conversation in zustand and shipped it back to be written verbatim, and still decided what the model saw.</p>
+  <p class="muted">Everything below follows from that one fact.</p>
+</section>
+
+<section>
+  <h2>One chat turn</h2>
+  <div class="compare">
+    <div class="card before">
+      <span class="tag before">Before</span>
+      <h3>Client drives, DB follows</h3>
+      <ol class="flow">
+        <li>Append user message to zustand<span class="where">stores/chat.ts</span></li>
+        <li class="danger">Validate intent — if rejected, <strong>return early. Nothing is saved.</strong></li>
+        <li>Build model context from <em>local</em> history<span class="where">normalizeChat(currentLocalHistory)</span></li>
+        <li class="danger">Call the model — if it throws, <strong>nothing is saved.</strong></li>
+        <li>Send the <strong>whole conversation</strong> back to be overwritten<span class="where">saveThreadForCurrentUser({ conversation })</span></li>
+      </ol>
+      <p class="muted" style="font-size:14px;margin:16px 0 0">Persistence was a side effect of the model call succeeding. A rejected or failed turn ate the user's message.</p>
+    </div>
+
+    <div class="card after">
+      <span class="tag after">After</span>
+      <h3>Server drives, client renders</h3>
+      <ol class="flow">
+        <li>Authorize the session<span class="where">requireAllowlistedCurrentUser()</span></li>
+        <li class="win"><strong>Persist the user message</strong> — before the model is ever called<span class="where">appendUserMessage() · own transaction</span></li>
+        <li>Read history + current diagram <strong>from the database</strong><span class="where">not from the caller</span></li>
+        <li>Call the model</li>
+        <li>Persist the reply and the new diagram<span class="where">appendAssistantMessage()</span></li>
+      </ol>
+      <p class="muted" style="font-size:14px;margin:16px 0 0">One action: <code>sendChatMessage(chatId, clientMessageId, message)</code>. The client no longer supplies history, a diagram, or timestamps.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The token bomb</h2>
+  <p>Every assistant message stored a full copy of the diagram, and the old <code>normalizeChat</code> replayed <code>message.diagram || message.message</code> — so <strong>every past diagram was re-sent to the model on every request</strong>. A Notion schema runs 10–50KB. Context grew quadratically with conversation length; you paid to send the model twenty stale copies of a document it only needed the latest version of.</p>
+
+  <div class="chart">
+    <div class="bars" id="bars"></div>
+    <div class="legend">
+      <span><i class="swatch old"></i>Before — one diagram copy per past turn</span>
+      <span><i class="swatch new"></i>After — exactly one, every time</span>
+    </div>
+    <p class="muted" style="font-size:13px;margin:14px 0 0">Full diagram copies sent to the model, per request, by turn number.</p>
+  </div>
+
+  <p style="margin-top:22px">Now <code>buildModelContext</code> replays message <em>text</em> only (capped at 40 turns), and the current diagram is injected exactly once as the model's last output — so it can still amend it directly.</p>
+</section>
+
+<section>
+  <h2>What each turn now costs</h2>
+  <div class="stats">
+    <div class="stat">
+      <div class="n">N<span class="arrow">→</span><span class="to">1</span></div>
+      <div class="k">Diagram copies sent to the model per request, where N is the conversation length.</div>
+    </div>
+    <div class="stat">
+      <div class="n">250<span class="arrow">→</span><span class="to">2</span></div>
+      <div class="k">Rows written per message. Was a full-array upsert of the whole thread; now two single-row inserts.</div>
+    </div>
+    <div class="stat">
+      <div class="n">~900KB<span class="arrow">→</span><span class="to">~1KB</span></div>
+      <div class="k">Worst-case action payload. The client used to re-upload the entire conversation on every send.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Verified against real Postgres</h2>
+  <p>The DAL was exercised against a scratch database — not Railway, not your local <code>schema_ai</code> (both untouched). 18/18 checks passed, plus 15/15 unit tests, typecheck, lint and a production build.</p>
+  <ul class="checks">
+    <li>A user's message survives a failed turn
+      <span class="sub">The bug that was eating messages. Committed before the model is called.</span></li>
+    <li>Another user cannot read, write to, or answer a thread
+      <span class="sub">Enforced inside the statement: <code>on conflict (chat_id) do update … where user_id = $n</code></span></li>
+    <li>A rejected write leaves nothing behind</li>
+    <li>Re-sending the same <code>clientMessageId</code> is a genuine no-op
+      <span class="sub">Double-clicks and retries can't duplicate a message.</span></li>
+    <li>A rejected intent is persisted, but does not clobber the diagram</li>
+    <li>The second turn's history and diagram come from the database, in send order</li>
+    <li>Deleting a thread cascades to its messages</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Files</h2>
+  <div class="files">
+    <div>
+      <h4>New</h4>
+      <ul>
+        <li>lib/chat-actions.ts</li>
+        <li>lib/chat-validation.ts</li>
+        <li>lib/ai/context.ts</li>
+        <li>lib/ai/service.ts</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Rewritten</h4>
+      <ul>
+        <li>lib/thread.ts</li>
+        <li>lib/thread-actions.ts</li>
+        <li>lib/ai/providers/openrouter.ts</li>
+        <li>stores/chat.ts</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Deleted</h4>
+      <ul>
+        <li class="del">lib/ai/actions.ts</li>
+        <li class="del">lib/ai/normalize-chat.ts</li>
+        <li class="del">lib/ai/validation.ts</li>
+        <li class="del">saveThreadForUser()</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Still open</h2>
+  <div class="open">
+    <h3>Per-thread <code>seq</code> column</h3>
+    <p>Ordering falls back to a random UUID when two messages share a <code>sent_at</code> millisecond. Unlikely, but it's a latent corruption of message order.</p>
+  </div>
+  <div class="open">
+    <h3><code>diagram_versions</code> table</h3>
+    <p>A diagram is still stored once per assistant message rather than once per version. Storage bloat only — it no longer reaches the model.</p>
+  </div>
+  <div class="open">
+    <h3>Your <code>.env</code> points at Railway</h3>
+    <p>Line 5 (localhost) is commented out; line 7 (remote) is active. <code>pnpm db:migrate</code> from this machine targets the remote database. The local <code>schema_ai</code> is still on the old schema with an empty migration journal.</p>
+  </div>
+</section>
+
+<footer>
+  Generated for schema.notion · open this file directly in a browser.
+</footer>
+
+</div>
+
+<script>
+  // Diagram copies per request: before = one per past assistant turn, after = one.
+  const TURNS = 10;
+  const MAX = TURNS;
+  const bars = document.getElementById('bars');
+
+  for (let turn = 1; turn <= TURNS; turn++) {
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+
+    const oldBar = document.createElement('div');
+    oldBar.className = 'bar old';
+    oldBar.style.height = `${(turn / MAX) * 100}%`;
+    oldBar.title = `Turn ${turn}: ${turn} diagram copies sent`;
+
+    const newBar = document.createElement('div');
+    newBar.className = 'bar new';
+    newBar.style.height = `${(1 / MAX) * 100}%`;
+    newBar.title = `Turn ${turn}: 1 diagram copy sent`;
+
+    const label = document.createElement('div');
+    label.className = 'bar-label';
+    label.textContent = turn;
+
+    col.append(oldBar, newBar, label);
+    bars.append(col);
+  }
+</script>
+</body>
+</html>

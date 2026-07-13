@@ -13,7 +13,28 @@ const globalForDb = globalThis as typeof globalThis & {
   __schemaAiPgClient?: ReturnType<typeof postgres>
 }
 
-const queryClient = globalForDb.__schemaAiPgClient || postgres(DATABASE_URL)
+function positiveInteger(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value || '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const queryClient =
+  globalForDb.__schemaAiPgClient ||
+  postgres(DATABASE_URL, {
+    max: positiveInteger(process.env.DATABASE_MAX_CONNECTIONS, 5),
+    idle_timeout: positiveInteger(
+      process.env.DATABASE_IDLE_TIMEOUT_SECONDS,
+      20,
+    ),
+    connect_timeout: positiveInteger(
+      process.env.DATABASE_CONNECT_TIMEOUT_SECONDS,
+      10,
+    ),
+    max_lifetime: positiveInteger(
+      process.env.DATABASE_MAX_LIFETIME_SECONDS,
+      1_800,
+    ),
+  })
 
 if (process.env.NODE_ENV !== 'production') {
   globalForDb.__schemaAiPgClient = queryClient

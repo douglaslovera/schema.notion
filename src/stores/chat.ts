@@ -1,9 +1,8 @@
 'use client'
 
-import type { Thread } from '@/db/schema'
-import { normalizeChat, sendUserMessage, validateUserIntent } from '@/lib/ai'
-import { saveThreadForCurrentUser } from '@/lib/thread'
+import { sendChatMessage } from '@/lib/chat-actions'
 import type { Message, Roles } from '@/types/chat'
+import type { ClientThread } from '@/types/thread'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -26,7 +25,7 @@ interface ChatStore {
 
   addMessageToChat: (role: Roles, text: string, diagram?: string) => void
   handleSendMessage: (messageText: string, chatId: string) => Promise<void>
-  loadChatThread: (chatId: string, thread: Thread | null) => Promise<void>
+  loadChatThread: (chatId: string, thread: ClientThread | null) => Promise<void>
   setPendingNavigationChatId: (chatId: string | null) => void
   setDiagramNodePositions: (
     chatId: string,
@@ -58,7 +57,7 @@ export const useChatStore = create<ChatStore>()(
       addMessageToChat: (role: Roles, text: string, diagram?: string) => {
         const { chatHistory } = get()
         const newMessage: Message = {
-          id: Date.now().toString(),
+          id: crypto.randomUUID(),
           role,
           message: text, // Textual content (e.g., user query, AI summary)
           diagram: diagram || '', // Diagram JSON string, if this message includes/is a diagram
@@ -68,79 +67,50 @@ export const useChatStore = create<ChatStore>()(
       },
 
       handleSendMessage: async (messageText: string, chatId: string) => {
-        const {
-          addMessageToChat,
-          chatHistory: currentLocalHistory,
-          chatDiagram: currentDiagramInStore,
-        } = get()
+        const { addMessageToChat } = get()
 
-        addMessageToChat(ROLES.user, messageText)
-        set({ isLoading: true, chatId })
-
-        // <<< VALIDAR INTENCIÓN DEL USUARIO
-        const validationResult = await validateUserIntent(messageText)
-        if (!validationResult.isValid) {
-          addMessageToChat(ROLES.assistant, validationResult.message)
-          set({ isLoading: false })
-          return
+        // Shown immediately; the server stores it under this same id, so the
+        // optimistic message and the persisted one stay in sync.
+        const clientMessageId = crypto.randomUUID()
+        const optimisticMessage: Message = {
+          id: clientMessageId,
+          role: ROLES.user,
+          message: messageText,
+          diagram: '',
+          timestamp: Date.now(),
         }
-        // >>> FIN VALIDACIÓN
 
-        const normalizedHistory = await normalizeChat(currentLocalHistory || [])
+        set((state) => ({
+          chatHistory: [...(state.chatHistory || []), optimisticMessage],
+          isLoading: true,
+          chatId,
+        }))
 
         try {
-          const { responseText: aiDiagramResponse } = await sendUserMessage(
-            normalizedHistory,
-            messageText,
-          )
+          const { assistantMessage, diagram } = await sendChatMessage({
+            chatId,
+            clientMessageId,
+            message: messageText,
+          })
 
-          let summaryForChatMessage =
-            'No se detectaron cambios estructurales en la propuesta de Notion.'
-          if (!currentDiagramInStore && aiDiagramResponse) {
-            summaryForChatMessage =
-              'He generado la primera propuesta de bases de datos de Notion según tu solicitud.'
-          } else if (
-            currentDiagramInStore &&
-            aiDiagramResponse &&
-            currentDiagramInStore !== aiDiagramResponse
-          ) {
-            summaryForChatMessage =
-              'Actualicé la estructura de bases de datos de Notion con los cambios que pediste.'
-          }
-
-          addMessageToChat(
-            ROLES.assistant,
-            summaryForChatMessage,
-            aiDiagramResponse,
-          )
-
-          set({ chatDiagram: aiDiagramResponse })
-
-          try {
-            await saveThreadForCurrentUser({
-              chatId,
-              diagram: aiDiagramResponse,
-              conversation: get().chatHistory || [],
-            })
-          } catch (error) {
-            console.error('Error saving thread:', error)
-            addMessageToChat(
-              ROLES.assistant,
-              'Generé la respuesta, pero no pude guardar este chat. Revisa la base de datos e inténtalo de nuevo.',
-            )
-          }
+          set((state) => ({
+            chatHistory: [...(state.chatHistory || []), assistantMessage],
+            chatDiagram: diagram || null,
+          }))
         } catch (error) {
           console.error('Error sending message:', error)
+          // The user's message is already persisted server-side; this notice is
+          // transient and is not written to the thread.
           addMessageToChat(
             ROLES.assistant,
-            `Sorry, I encountered an error while generating the response: ${(error as Error).message}`,
+            'No pude generar la respuesta. Inténtalo de nuevo.',
           )
         } finally {
           set({ isLoading: false })
         }
       },
 
-      loadChatThread: async (chatId: string, thread: Thread | null) => {
+      loadChatThread: async (chatId: string, thread: ClientThread | null) => {
         set({ isLoading: true })
         try {
           if (thread) {
@@ -238,13 +208,14 @@ export const useChatStore = create<ChatStore>()(
     {
       name: 'chat-storage',
       storage: createJSONStorage(() => sessionStorage),
+      // isLoading is deliberately not persisted: a tab closed mid-request would
+      // otherwise rehydrate stuck in a loading state.
       partialize: (state) => ({
         conversations: state.conversations,
         chatHistory: state.chatHistory,
         chatId: state.chatId,
         chatDiagram: state.chatDiagram,
         diagramNodePositionsByChatId: state.diagramNodePositionsByChatId,
-        isLoading: state.isLoading,
       }),
     },
   ),

@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/resizable'
 import { PENDING_STARTER_MESSAGE_PREFIX } from '@/constants/chat'
 import { PATHS } from '@/constants/paths'
-import type { Thread } from '@/db/schema'
-import type { User } from '@/lib/auth'
 import { parseNotionSchemaGraph } from '@/lib/parse-utils'
 import { cn } from '@/lib/utils'
 import { useChatStore } from '@/stores/chat'
 import { useConfigStore } from '@/stores/config'
+import type { User } from '@/types/auth'
+import type { ClientThread } from '@/types/thread'
 import { ReactFlowProvider } from '@xyflow/react'
 import {
   Database,
@@ -50,7 +50,7 @@ type SidebarThread = {
 
 type PageContentProps = {
   activeChatId: string
-  thread: Thread | null
+  thread: ClientThread | null
   threads: SidebarThread[]
   user: User
 }

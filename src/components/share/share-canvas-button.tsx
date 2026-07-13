@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button'
 import { PATHS } from '@/constants/paths'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
-import { enableCanvasSharing } from '@/lib/thread'
+import { enableCanvasSharing } from '@/lib/thread-actions'
 import { Braces, Code2, Share2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'

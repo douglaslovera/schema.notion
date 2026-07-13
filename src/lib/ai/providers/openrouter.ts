@@ -1,12 +1,11 @@
-import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { generateObject, generateText } from 'ai'
-import { z } from 'zod'
 import { AI_MODELS } from '@/lib/ai/models'
 import {
   generateNotionSchemaPrompt,
   validateUserIntentPrompt,
 } from '@/lib/prompts'
-import type { Message } from '@/types/chat'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { generateObject, generateText } from 'ai'
+import { z } from 'zod'
 import type {
   AIProvider,
   ChatMessage,
@@ -18,6 +17,11 @@ const validationSchema = z.object({
   isValid: z.boolean(),
   message: z.string(),
 })
+
+type OpenRouterMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 function toOpenRouterRole(role: 'user' | 'model'): 'user' | 'assistant' {
   return role === 'model' ? 'assistant' : 'user'
@@ -57,8 +61,8 @@ export function createOpenRouterProvider(): AIProvider {
         })
 
         return object
-      } catch (error) {
-        console.error('OpenRouter validation error:', error)
+      } catch {
+        console.error('OpenRouter validation failed')
         return {
           isValid: false,
           message: 'Error al procesar la validación de la solicitud.',
@@ -66,13 +70,21 @@ export function createOpenRouterProvider(): AIProvider {
       }
     },
 
-    async sendUserMessage(
+    async generateSchema(
       history: ChatMessage[],
       userMessage: string,
+      currentDiagram: string,
     ): Promise<SendMessageResult> {
-      const messages = [
+      // The current diagram is replayed as the model's own last output so it can
+      // amend it directly. It is sent once per request, never once per turn.
+      const diagramContext: OpenRouterMessage[] = currentDiagram
+        ? [{ role: 'assistant', content: currentDiagram }]
+        : []
+
+      const messages: OpenRouterMessage[] = [
         ...historyToOpenRouterMessages(history),
-        { role: 'user' as const, content: userMessage },
+        ...diagramContext,
+        { role: 'user', content: userMessage },
       ]
 
       const { text } = await generateText({
@@ -81,21 +93,7 @@ export function createOpenRouterProvider(): AIProvider {
         messages,
       })
 
-      const responseText = stripMarkdownCodeFence(text || '')
-      const updatedHistory: ChatMessage[] = [
-        ...history,
-        { role: 'user', parts: [{ text: userMessage }] },
-        { role: 'model', parts: [{ text: responseText }] },
-      ]
-
-      return { responseText, updatedHistory }
-    },
-
-    async normalizeChat(messages: Message[]): Promise<ChatMessage[]> {
-      return messages.map((message) => ({
-        role: message.role,
-        parts: [{ text: message.diagram || message.message }],
-      }))
+      return { responseText: stripMarkdownCodeFence(text || '') }
     },
   }
 }
