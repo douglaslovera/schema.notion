@@ -3,9 +3,10 @@ import { getCurrentUser } from '@/lib/auth'
 import { LandingNavbar } from '@/components/navigation/landing-navbar'
 import { buttonVariants } from '@/components/ui/button'
 import { WaitlistModalButton } from '@/components/waitlist/waitlist-modal-button'
-import { ArrowRight, Database, MousePointer2, Sparkles } from 'lucide-react'
+import { ArrowRight, Database } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export default async function LandingPage() {
   const user = await getCurrentUser()
@@ -58,29 +59,14 @@ export default async function LandingPage() {
             </div>
 
             <div className="app-preview-shell">
-              <div className="flex h-11 items-center justify-between border-b border-border/70 px-4">
-                <div className="flex gap-1.5" aria-hidden="true">
-                  <span className="size-2.5 rounded-full bg-foreground/20" />
-                  <span className="size-2.5 rounded-full bg-foreground/12" />
-                  <span className="size-2.5 rounded-full bg-foreground/8" />
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  schema.notion
-                </span>
-                <span className="w-10" aria-hidden="true" />
-              </div>
-
-              <div className="placeholder-grid flex aspect-[16/9] min-h-72 items-center justify-center p-8 sm:aspect-[16/8.5]">
-                <div className="flex max-w-sm flex-col items-center text-center">
-                  <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
-                    <MousePointer2 className="size-5 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium">Vista previa del producto</p>
-                  <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-                    El screenshot de la app irá centrado en este espacio.
-                  </p>
-                </div>
-              </div>
+              <Image
+                src="/screenshots/schema-workspace.png"
+                alt="Vista previa de un espacio de trabajo de schema.notion con chat y diagrama de bases de datos"
+                width={1896}
+                height={964}
+                priority
+                className="block h-auto w-full"
+              />
             </div>
           </div>
         </section>
