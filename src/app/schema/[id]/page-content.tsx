@@ -3,6 +3,7 @@
 import { AccountMenu } from '@/components/account/account-menu'
 import { ChatInput } from '@/components/chat/chat-input'
 import { ConversationView } from '@/components/chat/conversation-view'
+import { NewChatLink } from '@/components/chat/new-chat-link'
 import { SharedChatsModal } from '@/components/chat/shared-chats-modal'
 import { Diagram } from '@/components/reactflow/diagram'
 import { ShareCanvasButton } from '@/components/share/share-canvas-button'
@@ -32,10 +33,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Share2,
   Settings,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 type SidebarThread = {
@@ -49,14 +52,14 @@ type SidebarThread = {
 }
 
 type PageContentProps = {
-  activeChatId: string
+  serverChatId: string
   thread: ClientThread | null
   threads: SidebarThread[]
   user: User
 }
 
 export default function PageContent({
-  activeChatId,
+  serverChatId,
   thread,
   threads,
   user,
@@ -81,6 +84,14 @@ export default function PageContent({
     pendingNavigationChatId: pendingChatId,
     setPendingNavigationChatId: setPendingChatId,
   } = useChatStore()
+  // The active chat is read from the URL rather than the server prop so that a
+  // client-side "new chat" (which pushes a URL without an RSC render) is
+  // reflected. serverChatId still identifies which chat `thread` belongs to.
+  const pathname = usePathname()
+  const activeChatId = pathname.startsWith(`${PATHS.CHAT}/`)
+    ? pathname.slice(PATHS.CHAT.length + 1)
+    : serverChatId
+  const activeThread = serverChatId === activeChatId ? thread : null
   const { chatListCollapsed, setChatListCollapsed } = useConfigStore()
   const processedStarterForChatIdRef = useRef<string | null>(null)
   const conversationScrollRef = useRef<HTMLDivElement>(null)
@@ -97,7 +108,7 @@ export default function PageContent({
   const displayedChatTitle =
     threads.find(
       (item) => item.chatId === (pendingChatId || activeChatId),
-    )?.title || workspaceTitle
+    )?.title || (pendingChatId ? 'Nuevo workspace' : workspaceTitle)
 
   useEffect(() => {
     setHasMounted(true)
@@ -134,9 +145,9 @@ export default function PageContent({
       activeChatId !== storeChatId ||
       useChatStore.getState().chatHistory === null
     ) {
-      loadChatThread(activeChatId, thread)
+      loadChatThread(activeChatId, activeThread)
     }
-  }, [activeChatId, loadChatThread, pendingChatId, storeChatId, thread])
+  }, [activeChatId, activeThread, loadChatThread, pendingChatId, storeChatId])
 
   useEffect(() => {
     if (processedStarterForChatIdRef.current === activeChatId) return
@@ -411,10 +422,10 @@ export default function PageContent({
             <SharedChatsModal chats={threads} />
 
             <Button asChild className="w-full justify-start rounded-lg" size="sm">
-              <Link href={PATHS.NEW_CHAT}>
+              <NewChatLink onNavigate={() => setLeftSidebarOpen(false)}>
                 <Plus className="h-4 w-4" />
                 Nuevo chat
-              </Link>
+              </NewChatLink>
             </Button>
           </div>
           </nav>
@@ -451,9 +462,16 @@ export default function PageContent({
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <MessageSquareText
-                        className={`size-3.5 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
-                      />
+                      <span className="relative shrink-0" aria-hidden="true">
+                        <MessageSquareText
+                          className={`size-3.5 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+                        />
+                        {item.isCanvasShared ? (
+                          <span className="absolute -bottom-1 -right-1 flex size-2.5 items-center justify-center rounded-full bg-sidebar text-foreground ring-1 ring-sidebar">
+                            <Share2 className="size-1.5" strokeWidth={3} />
+                          </span>
+                        ) : null}
+                      </span>
                       <p className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 tracking-tight">
                         {item.title}
                       </p>
@@ -534,9 +552,9 @@ export default function PageContent({
                 )}
               >
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                  <Link href={PATHS.NEW_CHAT} className="hover:text-foreground">
+                  <NewChatLink className="hover:text-foreground">
                     Chats
-                  </Link>
+                  </NewChatLink>
                   <span aria-hidden="true">/</span>
                   <span>Workspace</span>
                 </div>

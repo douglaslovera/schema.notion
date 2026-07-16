@@ -1,3 +1,4 @@
+import { ThemeScript } from '@/components/theme/theme-script'
 import { ThemeSync } from '@/components/theme/theme-sync'
 import './globals.css'
 
@@ -13,6 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className="min-h-screen antialiased">
         <ThemeSync />
         {children}

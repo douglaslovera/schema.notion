@@ -220,6 +220,23 @@ export async function enableCanvasSharingForUser(
   return thread.shareToken
 }
 
+export async function disableCanvasSharingForUser(
+  chatId: string,
+  userId: string,
+): Promise<boolean> {
+  const [thread] = await db
+    .update(threads)
+    .set({ isCanvasShared: false })
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
+    .returning({ chatId: threads.chatId })
+
+  if (!thread) {
+    throw new ThreadOwnershipError()
+  }
+
+  return true
+}
+
 export async function duplicateThreadForUser(
   sourceChatId: string,
   userId: string,

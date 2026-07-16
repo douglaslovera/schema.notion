@@ -5,6 +5,7 @@ import { ZodError } from 'zod'
 import {
   ThreadOwnershipError,
   deleteThreadForUser,
+  disableCanvasSharingForUser,
   duplicateThreadForUser,
   enableCanvasSharingForUser,
 } from './thread'
@@ -57,6 +58,17 @@ export async function enableCanvasSharing(chatId: string): Promise<string> {
   } catch (error) {
     logThreadActionError('share', error)
     return toSafeActionError(error, 'Unable to share thread')
+  }
+}
+
+export async function disableCanvasSharing(chatId: string): Promise<boolean> {
+  const user = await requireAllowlistedCurrentUser()
+
+  try {
+    return await disableCanvasSharingForUser(chatIdSchema.parse(chatId), user.id)
+  } catch (error) {
+    logThreadActionError('unshare', error)
+    return toSafeActionError(error, 'Unable to unshare thread')
   }
 }
 

@@ -1,15 +1,20 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { PATHS } from '@/constants/paths'
 import { useChatStore } from '@/stores/chat'
 import { Send } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useRef, useState } from 'react'
 
 export function ChatInput() {
   const { handleSendMessage, isLoading } = useChatStore()
-  const params = useParams()
-  const chatId = params.id as string
+  // Read from the URL, not useParams: a client-side "new chat" updates the
+  // pathname via history.pushState, which useParams does not observe.
+  const pathname = usePathname()
+  const chatId = pathname.startsWith(`${PATHS.CHAT}/`)
+    ? pathname.slice(PATHS.CHAT.length + 1)
+    : ''
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 

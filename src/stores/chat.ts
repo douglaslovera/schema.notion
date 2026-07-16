@@ -25,6 +25,7 @@ interface ChatStore {
 
   addMessageToChat: (role: Roles, text: string, diagram?: string) => void
   handleSendMessage: (messageText: string, chatId: string) => Promise<void>
+  startNewChat: () => string
   loadChatThread: (chatId: string, thread: ClientThread | null) => Promise<void>
   setPendingNavigationChatId: (chatId: string | null) => void
   setDiagramNodePositions: (
@@ -108,6 +109,22 @@ export const useChatStore = create<ChatStore>()(
         } finally {
           set({ isLoading: false })
         }
+      },
+
+      // A new chat has no server state until its first message is sent (which
+      // upserts the thread), so it is created entirely on the client: seed an
+      // empty thread and return its id for the caller to push into the URL. No
+      // navigation or data fetch is required.
+      startNewChat: () => {
+        const chatId = crypto.randomUUID()
+        set({
+          chatId,
+          chatHistory: [],
+          chatDiagram: null,
+          isLoading: false,
+          pendingNavigationChatId: null,
+        })
+        return chatId
       },
 
       loadChatThread: async (chatId: string, thread: ClientThread | null) => {

@@ -106,7 +106,7 @@ export default async function Schema({ params }: PageProps) {
 
   return (
     <PageContent
-      activeChatId={chatId}
+      serverChatId={chatId}
       thread={clientThread}
       threads={threads}
       user={user}

@@ -6,29 +6,30 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 interface ConfigStore {
   userId: string | null
   isDarkMode: boolean
-  isThemeHydrated: boolean
   chatListCollapsed: boolean
   setUserId: (userId: string) => void
   setDarkMode: (isDarkMode: boolean) => void
-  setThemeHydrated: (isThemeHydrated: boolean) => void
   setChatListCollapsed: (collapsed: boolean) => void
 }
+
+// ThemeScript already resolved the theme onto <html> before paint, so the class
+// is the source of truth. Seeding from it keeps ThemeSync from undoing that when
+// nothing is persisted yet (first visit on a dark OS).
+const getInitialDarkMode = () =>
+  typeof document !== 'undefined' &&
+  document.documentElement.classList.contains('dark')
 
 export const useConfigStore = create<ConfigStore>()(
   persist(
     (set) => ({
       userId: null,
-      isDarkMode: false,
-      isThemeHydrated: false,
+      isDarkMode: getInitialDarkMode(),
       chatListCollapsed: false,
       setUserId: (userId: string) => {
         set({ userId })
       },
       setDarkMode: (isDarkMode: boolean) => {
         set({ isDarkMode })
-      },
-      setThemeHydrated: (isThemeHydrated: boolean) => {
-        set({ isThemeHydrated })
       },
       setChatListCollapsed: (collapsed: boolean) => {
         set({ chatListCollapsed: collapsed })
@@ -42,9 +43,6 @@ export const useConfigStore = create<ConfigStore>()(
         userId: state.userId,
         chatListCollapsed: state.chatListCollapsed,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setThemeHydrated(true)
-      },
     },
   ),
 )
