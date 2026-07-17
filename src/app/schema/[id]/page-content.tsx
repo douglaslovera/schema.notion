@@ -9,6 +9,21 @@ import { Diagram } from '@/components/reactflow/diagram'
 import { ShareCanvasButton } from '@/components/share/share-canvas-button'
 import { Button } from '@/components/ui/button'
 import {
+  Database,
+  Eye,
+  LoaderCircle,
+  Maximize2,
+  MessageSquareText,
+  Minimize2,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Settings,
+  Share2,
+  X,
+} from '@/components/ui/icons'
+import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -22,21 +37,6 @@ import { useConfigStore } from '@/stores/config'
 import type { User } from '@/types/auth'
 import type { ClientThread } from '@/types/thread'
 import { ReactFlowProvider } from '@xyflow/react'
-import {
-  Database,
-  Eye,
-  LoaderCircle,
-  Maximize2,
-  MessageSquareText,
-  Minimize2,
-  Network,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plus,
-  Share2,
-  Settings,
-  X,
-} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'

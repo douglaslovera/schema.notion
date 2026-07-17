@@ -2,12 +2,12 @@ import { AccountMenu } from '@/components/account/account-menu'
 import { ShareCanvasButton } from '@/components/share/share-canvas-button'
 import { Diagram } from '@/components/reactflow/diagram'
 import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight, PanelLeftOpen } from '@/components/ui/icons'
 import { PATHS } from '@/constants/paths'
 import type { User } from '@/types/auth'
 import { parseNotionSchemaGraph } from '@/lib/parse-utils'
 import { useChatStore } from '@/stores/chat'
 import { ReactFlowProvider } from '@xyflow/react'
-import { ChevronLeft, ChevronRight, PanelLeftOpen } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DiagramPanel({

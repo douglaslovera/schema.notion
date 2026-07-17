@@ -10,9 +10,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import {
+  ExternalLink,
+  LoaderCircle,
+  Share2,
+  Unlink2,
+} from '@/components/ui/icons'
 import { PATHS } from '@/constants/paths'
 import { disableCanvasSharing } from '@/lib/thread-actions'
-import { ExternalLink, LoaderCircle, Share2, Unlink2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'

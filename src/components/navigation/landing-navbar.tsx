@@ -1,8 +1,8 @@
 import { AccountMenu } from '@/components/account/account-menu'
 import { ThemeToggleButton } from '@/components/theme/theme-toggle-button'
 import { buttonVariants } from '@/components/ui/button'
+import { Database } from '@/components/ui/icons'
 import { cn } from '@/lib/utils'
-import { Database } from 'lucide-react'
 import Link from 'next/link'
 
 type LandingNavbarProps = {

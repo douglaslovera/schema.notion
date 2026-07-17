@@ -1,5 +1,5 @@
 import { AccountMenu } from '@/components/account/account-menu'
-import { Database } from 'lucide-react'
+import { Database } from '@/components/ui/icons'
 import Link from 'next/link'
 
 type SchemasNavbarProps = {

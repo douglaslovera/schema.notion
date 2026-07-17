@@ -1,7 +1,7 @@
 'use client'
 
 import { authClient } from '@/lib/auth-client'
-import { Database, LogIn } from 'lucide-react'
+import { Database, LogIn } from '@/components/ui/icons'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'

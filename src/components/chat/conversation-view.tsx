@@ -6,7 +6,7 @@ import {
   CalendarDays,
   FolderKanban,
   Sparkles,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import { useEffect, useRef, useState } from 'react'
 
 const STARTER_IDEAS = [

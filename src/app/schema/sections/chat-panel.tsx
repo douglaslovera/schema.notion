@@ -1,8 +1,8 @@
 import { ChatInput } from '@/components/chat/chat-input'
 import { ConversationView } from '@/components/chat/conversation-view'
 import { Button } from '@/components/ui/button'
+import { ChevronLeft, PanelLeftClose, Sparkles } from '@/components/ui/icons'
 import { useChatStore } from '@/stores/chat'
-import { ChevronLeft, PanelLeftClose, Sparkles } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 export default function Chat({

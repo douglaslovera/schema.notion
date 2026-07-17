@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Moon, Sun } from '@/components/ui/icons'
 import { useConfigStore } from '@/stores/config'
-import { Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 type ThemeToggleButtonProps = {

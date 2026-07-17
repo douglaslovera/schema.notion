@@ -9,7 +9,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, X } from 'lucide-react'
+import { ArrowRight, X } from '@/components/ui/icons'
 import { useState } from 'react'
 
 type WaitlistModalButtonProps = {

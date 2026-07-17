@@ -1,9 +1,9 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Send } from '@/components/ui/icons'
 import { PATHS } from '@/constants/paths'
 import { useChatStore } from '@/stores/chat'
-import { Send } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useRef, useState } from 'react'
 

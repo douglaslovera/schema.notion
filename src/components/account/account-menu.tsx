@@ -5,8 +5,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch'
 import { useConfigStore } from '@/stores/config'
 import { Button } from '@/components/ui/button'
+import {
+  ChevronRight,
+  LogIn,
+  MessageSquare,
+  MoonStar,
+  Settings,
+  UserCircle2,
+} from '@/components/ui/icons'
 import { cn } from '@/lib/utils'
-import { ChevronRight, LogIn, MoonStar, Settings, UserCircle2, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
