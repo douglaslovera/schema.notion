@@ -176,6 +176,89 @@ export const accessAllowlist = pgTable(
   }),
 )
 
+// OAuth tables used by the Better Auth MCP plugin. MCP clients (Claude,
+// ChatGPT, Cursor...) register here and receive bearer tokens for /api/mcp.
+export const oauthApplication = pgTable(
+  'oauth_application',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    icon: text('icon'),
+    metadata: text('metadata'),
+    // Inline constraint (not an index) so it exists before the FKs that
+    // reference it are added in the migration.
+    clientId: text('client_id')
+      .notNull()
+      .unique('oauth_application_client_id_unique'),
+    clientSecret: text('client_secret'),
+    redirectUrls: text('redirect_urls').notNull(),
+    type: text('type').notNull(),
+    disabled: boolean('disabled').default(false),
+    userId: text('user_id').references(() => authUser.id, {
+      onDelete: 'cascade',
+    }),
+    ...auditTimestamps(),
+  },
+  (table) => ({
+    userIdIndex: index('oauth_application_user_id_idx').on(table.userId),
+  }),
+)
+
+export const oauthAccessToken = pgTable(
+  'oauth_access_token',
+  {
+    id: text('id').primaryKey(),
+    accessToken: text('access_token').notNull(),
+    refreshToken: text('refresh_token').notNull(),
+    accessTokenExpiresAt: timestamp('access_token_expires_at', {
+      withTimezone: true,
+    }).notNull(),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
+      withTimezone: true,
+    }).notNull(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => authUser.id, {
+      onDelete: 'cascade',
+    }),
+    scopes: text('scopes').notNull(),
+    ...auditTimestamps(),
+  },
+  (table) => ({
+    accessTokenUnique: uniqueIndex('oauth_access_token_access_token_unique').on(
+      table.accessToken,
+    ),
+    refreshTokenUnique: uniqueIndex(
+      'oauth_access_token_refresh_token_unique',
+    ).on(table.refreshToken),
+    clientIdIndex: index('oauth_access_token_client_id_idx').on(
+      table.clientId,
+    ),
+    userIdIndex: index('oauth_access_token_user_id_idx').on(table.userId),
+  }),
+)
+
+export const oauthConsent = pgTable(
+  'oauth_consent',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => authUser.id, { onDelete: 'cascade' }),
+    scopes: text('scopes').notNull(),
+    consentGiven: boolean('consent_given').notNull(),
+    ...auditTimestamps(),
+  },
+  (table) => ({
+    clientIdIndex: index('oauth_consent_client_id_idx').on(table.clientId),
+    userIdIndex: index('oauth_consent_user_id_idx').on(table.userId),
+  }),
+)
+
 export type Thread = typeof threads.$inferSelect
 export type InsertThread = typeof threads.$inferInsert
 export type MessageRecord = typeof messages.$inferSelect

@@ -6,10 +6,7 @@ import {
   type ParsedNotionRelationEdge,
   type ParsedNotionProperty,
 } from '@/types/notion-schema'
-
-const PROPERTY_TYPE_ALIASES: Record<string, string> = {
-  text: 'rich_text',
-}
+import { normalizeNotionSchemaInput } from './diagram'
 
 function getBidirectionalRelationKey(relation: ParsedNotionRelationEdge) {
   if (relation.direction !== 'two_way' || !relation.targetPropertyName) {
@@ -22,44 +19,6 @@ function getBidirectionalRelationKey(relation: ParsedNotionRelationEdge) {
   ].toSorted()
 
   return endpoints.join('<->')
-}
-
-function normalizeNotionSchemaInput(input: unknown): unknown {
-  if (!input || typeof input !== 'object') return input
-
-  const root = input as {
-    workspace?: {
-      databases?: Array<{
-        properties?: Array<{ type?: unknown }>
-      }>
-    }
-  }
-
-  if (!root.workspace?.databases) return input
-
-  return {
-    ...root,
-    workspace: {
-      ...root.workspace,
-      databases: root.workspace.databases.map((database) => ({
-        ...database,
-        properties: database.properties?.map((property) => {
-          if (
-            property?.type &&
-            typeof property.type === 'string' &&
-            PROPERTY_TYPE_ALIASES[property.type]
-          ) {
-            return {
-              ...property,
-              type: PROPERTY_TYPE_ALIASES[property.type],
-            }
-          }
-
-          return property
-        }),
-      })),
-    },
-  }
 }
 
 export function parseNotionSchemaGraph(jsonString: string): ParsedNotionGraph {

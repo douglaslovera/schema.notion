@@ -94,6 +94,7 @@ export default function PageContent({
   const activeThread = serverChatId === activeChatId ? thread : null
   const { chatListCollapsed, setChatListCollapsed } = useConfigStore()
   const processedStarterForChatIdRef = useRef<string | null>(null)
+  const appliedServerThreadRef = useRef<ClientThread | null>(null)
   const conversationScrollRef = useRef<HTMLDivElement>(null)
   const diagramCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -141,13 +142,42 @@ export default function PageContent({
   useEffect(() => {
     if (pendingChatId && pendingChatId !== activeChatId) return
 
+    const store = useChatStore.getState()
+    // The thread can change outside this tab (e.g. an MCP client saving a
+    // diagram), so a new server snapshot wins over the sessionStorage copy.
+    // While a message is in flight it waits (isLoading re-runs this effect),
+    // and a snapshot older than the local conversation is dropped.
+    let hasNewServerThread = false
+
+    if (
+      activeThread !== null &&
+      activeThread !== appliedServerThreadRef.current &&
+      !isLoading
+    ) {
+      hasNewServerThread =
+        activeThread.conversation.length >= (store.chatHistory?.length ?? 0)
+
+      if (!hasNewServerThread) {
+        appliedServerThreadRef.current = activeThread
+      }
+    }
+
     if (
       activeChatId !== storeChatId ||
-      useChatStore.getState().chatHistory === null
+      store.chatHistory === null ||
+      hasNewServerThread
     ) {
+      appliedServerThreadRef.current = activeThread
       loadChatThread(activeChatId, activeThread)
     }
-  }, [activeChatId, activeThread, loadChatThread, pendingChatId, storeChatId])
+  }, [
+    activeChatId,
+    activeThread,
+    isLoading,
+    loadChatThread,
+    pendingChatId,
+    storeChatId,
+  ])
 
   useEffect(() => {
     if (processedStarterForChatIdRef.current === activeChatId) return

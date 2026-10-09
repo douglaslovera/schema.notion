@@ -8,9 +8,16 @@ const THREAD_DAL = new URL('../src/lib/thread.ts', import.meta.url)
 const AI_SERVICE = new URL('../src/lib/ai/service.ts', import.meta.url)
 const AUTH_DAL = new URL('../src/lib/auth.ts', import.meta.url)
 const ALLOWLIST_DAL = new URL('../src/lib/access-allowlist.ts', import.meta.url)
+const MCP_SERVER = new URL('../src/lib/mcp/server.ts', import.meta.url)
 
 const ACTION_MODULES = [THREAD_ACTIONS, CHAT_ACTIONS]
-const SERVER_ONLY_MODULES = [THREAD_DAL, AI_SERVICE, AUTH_DAL, ALLOWLIST_DAL]
+const SERVER_ONLY_MODULES = [
+  THREAD_DAL,
+  AI_SERVICE,
+  AUTH_DAL,
+  ALLOWLIST_DAL,
+  MCP_SERVER,
+]
 
 test('only dedicated action modules declare the use-server boundary', async () => {
   for (const file of ACTION_MODULES) {

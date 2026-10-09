@@ -9,7 +9,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export function SignInScreen() {
+export function SignInScreen({ redirectPath }: { redirectPath: string }) {
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -28,7 +28,7 @@ export function SignInScreen() {
       const response = await authClient.signIn.email({
         email,
         password,
-        callbackURL: '/schema/new',
+        callbackURL: redirectPath,
       })
 
       if (response.error) {
@@ -37,7 +37,13 @@ export function SignInScreen() {
         return
       }
 
-      router.push('/schema/new')
+      if (redirectPath.startsWith('/api/')) {
+        // Route handler, not a page: leave the client router.
+        window.location.assign(redirectPath)
+        return
+      }
+
+      router.push(redirectPath)
       router.refresh()
     } catch (error) {
       console.error('Failed to authenticate with email and password', error)
@@ -55,7 +61,7 @@ export function SignInScreen() {
     try {
       await authClient.signIn.social({
         provider: 'google',
-        callbackURL: '/schema/new',
+        callbackURL: redirectPath,
       })
     } catch (error) {
       console.error('Failed to start Google sign-in', error)
