@@ -38,7 +38,7 @@ import type { User } from '@/types/auth'
 import type { ClientThread } from '@/types/thread'
 import { ReactFlowProvider } from '@xyflow/react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 type SidebarThread = {
@@ -95,6 +95,8 @@ export default function PageContent({
   const { chatListCollapsed, setChatListCollapsed } = useConfigStore()
   const processedStarterForChatIdRef = useRef<string | null>(null)
   const appliedServerThreadRef = useRef<ClientThread | null>(null)
+  const refreshedForSnapshotRef = useRef(false)
+  const router = useRouter()
   const conversationScrollRef = useRef<HTMLDivElement>(null)
   const diagramCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -145,20 +147,32 @@ export default function PageContent({
     const store = useChatStore.getState()
     // The thread can change outside this tab (e.g. an MCP client saving a
     // diagram), so a new server snapshot wins over the sessionStorage copy.
-    // While a message is in flight it waits (isLoading re-runs this effect),
-    // and a snapshot older than the local conversation is dropped.
+    // It waits while a message is in flight (isLoading re-runs this effect).
+    // A snapshot missing local messages may have been captured mid-turn: ask
+    // the server once more, then trust whatever it returns.
     let hasNewServerThread = false
 
     if (
       activeThread !== null &&
       activeThread !== appliedServerThreadRef.current &&
+      activeChatId === storeChatId &&
+      store.chatHistory !== null &&
       !isLoading
     ) {
-      hasNewServerThread =
-        activeThread.conversation.length >= (store.chatHistory?.length ?? 0)
+      const serverMessageIds = new Set(
+        activeThread.conversation.map((message) => message.id),
+      )
+      const coversLocalHistory = store.chatHistory.every((message) =>
+        serverMessageIds.has(message.id),
+      )
 
-      if (!hasNewServerThread) {
+      if (coversLocalHistory || refreshedForSnapshotRef.current) {
+        refreshedForSnapshotRef.current = false
+        hasNewServerThread = true
+      } else {
+        refreshedForSnapshotRef.current = true
         appliedServerThreadRef.current = activeThread
+        router.refresh()
       }
     }
 
@@ -176,6 +190,7 @@ export default function PageContent({
     isLoading,
     loadChatThread,
     pendingChatId,
+    router,
     storeChatId,
   ])
 
