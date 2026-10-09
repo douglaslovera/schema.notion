@@ -60,11 +60,12 @@ export default async function LandingPage() {
 
             <div className="app-preview-shell">
               <Image
-                src="/screenshots/schema-workspace.png"
+                src="https://res.cloudinary.com/dyonw3lkf/image/upload/v1791582010/schema-notion/landing/schema-workspace.png"
                 alt="Vista previa de un espacio de trabajo de schema.notion con chat y diagrama de bases de datos"
                 width={1896}
                 height={964}
                 priority
+                unoptimized
                 className="block h-auto w-full"
               />
             </div>
