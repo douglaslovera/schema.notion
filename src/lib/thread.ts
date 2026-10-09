@@ -187,6 +187,71 @@ export async function appendAssistantMessage(
   })
 }
 
+/**
+ * Create a thread, optionally seeded with a diagram. The seed is recorded as an
+ * assistant message in the same transaction so a failure leaves nothing behind.
+ */
+export async function createThreadForUser(
+  userId: string,
+  chatId: string,
+  input: { title: string; diagram?: string; message?: string },
+): Promise<SidebarThread> {
+  return db.transaction(async (tx) => {
+    const [thread] = await tx
+      .insert(threads)
+      .values({
+        chatId,
+        userId,
+        title: buildThreadTitle(input.title),
+        diagram: input.diagram ?? '',
+      })
+      .returning({
+        chatId: threads.chatId,
+        title: threads.title,
+        updatedAt: threads.updatedAt,
+        isCanvasShared: threads.isCanvasShared,
+        shareToken: threads.shareToken,
+      })
+
+    if (input.diagram) {
+      await tx.insert(messages).values({
+        chatId,
+        clientId: crypto.randomUUID(),
+        role: 'model',
+        message: input.message ?? '',
+        diagram: input.diagram,
+        sentAt: new Date(),
+      })
+    }
+
+    return thread
+  })
+}
+
+export async function renameThreadForUser(
+  chatId: string,
+  userId: string,
+  title: string,
+): Promise<SidebarThread> {
+  const [thread] = await db
+    .update(threads)
+    .set({ title: buildThreadTitle(title) })
+    .where(and(eq(threads.chatId, chatId), eq(threads.userId, userId)))
+    .returning({
+      chatId: threads.chatId,
+      title: threads.title,
+      updatedAt: threads.updatedAt,
+      isCanvasShared: threads.isCanvasShared,
+      shareToken: threads.shareToken,
+    })
+
+  if (!thread) {
+    throw new ThreadOwnershipError()
+  }
+
+  return thread
+}
+
 export async function deleteThreadForUser(
   chatId: string,
   userId: string,

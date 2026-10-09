@@ -125,6 +125,45 @@ Add an entry with the same email used for Google or email/password authenticatio
 
 The current UI supports signing in with email and password but does not expose an email registration screen. Google OAuth creates the normal first-time sign-in path.
 
+## MCP server (bring your own AI)
+
+schema.notion exposes a remote MCP server so users can design workspaces with
+their own AI subscription (Claude, ChatGPT, Cursor, Codex...) instead of the
+app's OpenRouter key. The client's model does the design work; the server only
+stores, validates and shares diagrams.
+
+- Endpoint: `<BETTER_AUTH_URL>/api/mcp` (Streamable HTTP, stateless)
+- Auth: OAuth 2.1 with dynamic client registration and PKCE (Better Auth `mcp`
+  plugin). Users sign in, approve the client on `/oauth/consent`, and the
+  access allowlist applies just like in the web app.
+- Discovery: `/.well-known/oauth-authorization-server` and
+  `/.well-known/oauth-protected-resource`
+
+Run `pnpm db:migrate` after pulling, since the OAuth tables come from
+`drizzle/0004_mcp_oauth.sql`.
+
+| Tool | Purpose |
+| --- | --- |
+| `list_projects` | Projects owned by the user, newest first |
+| `get_project` | Diagram JSON, share status and (optionally) chat history |
+| `create_project` | New project, optionally with an initial diagram |
+| `rename_project` / `duplicate_project` / `delete_project` | Project management |
+| `validate_diagram` | Dry-run validation of a diagram |
+| `save_diagram` | Replace a project's diagram with complete, validated JSON |
+| `share_project` / `unshare_project` | Public read-only link and embed URL |
+
+It also provides the `schema-notion://guides/diagram-format` resource and the
+`design_notion_workspace` prompt.
+
+Connect a client, for example Claude Code:
+
+```bash
+claude mcp add --transport http schema-notion http://localhost:3000/api/mcp
+```
+
+In Claude.ai or ChatGPT, add a custom connector with the same URL. The app must
+be reachable from the provider, e.g. through a tunnel.
+
 ## Available scripts
 
 | Command | Purpose |
